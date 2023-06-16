@@ -7,7 +7,7 @@ from redis.asyncio import Redis
 from db.elastic import get_elastic
 from db.redis import get_redis
 from models.genre import Genre
-from elastic_class import ElasticMain
+from services.elastic_class import ElasticMain
 
 from services.redis_mixins import CacheMixin, Paginator
 
@@ -71,4 +71,4 @@ def get_genres_service(
     
     elastic_main: ElasticMain = ElasticMain(elastic)
 
-    return GenreService(redis, elastic_main)
+    return GenreService(redis, elastic, elastic_main)

@@ -10,7 +10,7 @@ from db.redis import get_redis
 
 from models.film import Film, FilmBase
 from services.redis_mixins import CacheMixin, Paginator, Sort
-from elastic_class import ElasticMain
+from services.elastic_class import ElasticMain
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 
@@ -205,4 +205,4 @@ def get_film_service(
 ) -> FilmService:
     
     elastic_main: ElasticMain = ElasticMain(elastic)
-    return FilmService(redis, elastic_main)
+    return FilmService(redis, elastic, elastic_main)

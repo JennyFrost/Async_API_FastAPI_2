@@ -9,7 +9,7 @@ from db.elastic import get_elastic
 from db.redis import get_redis
 from models.person import Role, Person, PersonFilm
 from services.redis_mixins import CacheMixin, Paginator
-from elastic_class import ElasticMain
+from services.elastic_class import ElasticMain
 
 PERSON_CACHE_EXPIRE_IN_SECONDS = 60 * 2
 
@@ -147,4 +147,4 @@ def get_person_service(
     
     elastic_main: ElasticMain = ElasticMain(elastic)
 
-    return PersonService(redis, elastic_main)
+    return PersonService(redis, elastic, elastic_main)
