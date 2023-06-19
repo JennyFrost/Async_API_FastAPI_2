@@ -1,12 +1,15 @@
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from pydantic import BaseModel
 
+from models.person import Role
+
 
 class ElasticMain:
     def __init__(self, elastic: AsyncElasticsearch):
         self.elastic = elastic
 
     async def get_obj_from_elastic(self, obj_id: str, index: str, some_class) -> BaseModel | None:
+        """достать один элемент по id"""
         try:
             doc = await self.elastic.get(index=index, id=obj_id)
         except NotFoundError:
@@ -14,6 +17,7 @@ class ElasticMain:
         return some_class(**doc['_source'])
 
     async def _base_get_objects_from_elastic(self, search_body: dict,  page: int, page_size: int, index: str, some_class, sort_field: str = None):
+        """базовый метод получения списка элементов"""
         try:
             search_body.update({"_source": list(some_class.__fields__.keys())})
             search_body.update(Paginator(page_size=page_size, page_number=page).get_paginate_body())
@@ -26,16 +30,21 @@ class ElasticMain:
 
     async def get_objects_from_elastic(
             self, page: int, page_size: int,
-            index: str, some_class, filter_by: str = None,
-            filter_field: str = None, sort_field: str = None) -> list[BaseModel]:
+            index: str, some_class, dict_filter: dict = None, sort_field: str = None) -> list[BaseModel]:
+        """достать твсе элементы"""
         search_body = {}
-        if filter_by:
-            await self.get_objects_filter_from_elastic(filter_by, filter_field, search_body)
+        if dict_filter:
+            await self.get_objects_filter_from_elastic(dict_filter=dict_filter, search_body=search_body)
         else:
             search_body.update({"query": {"match_all": {}}})
-        return await self._base_get_objects_from_elastic(search_body,  page, page_size, index, some_class, sort_field)
+        objects = await self._base_get_objects_from_elastic(search_body,  page, page_size, index, some_class, sort_field)
+        if objects:
+            return objects
+        else:
+            return []
 
     async def get_objects_query_from_elastic(self, page: int, page_size: int, index: str, some_class, query: str, query_field: str) -> list[BaseModel]:
+        """поиск элементов"""
         search_body = {}
         search_body.update({"query": {
                     "query_string": {
@@ -45,22 +54,43 @@ class ElasticMain:
                 }})
         return await self._base_get_objects_from_elastic(search_body, page, page_size, index, some_class)
 
+    async def inner_objects_elastic(self, on_field: str, dict_filter: dict,
+                index: str, some_class, main_obj):
+        search_body = {}
+        search_body = await self.get_objects_filter_from_elastic(dict_filter=dict_filter, search_body=search_body)
+        [i['nested'].update({"inner_hits": {}}) for i in search_body['query']['bool']['should']]
+        search_body.update({"_source": [on_field]})
+
+        objects = await self.elastic.search(index=index, body=search_body)
+        for obj in objects['hits']['hits']:
+            film_id = obj['_source']['id']
+            person_film = some_class(uuid=film_id)
+            if obj['inner_hits']['actors']['hits']['total']['value'] == 1:
+                person_film.roles.append(Role.actor)
+            if obj['inner_hits']['writers']['hits']['total']['value'] == 1:
+                person_film.roles.append(Role.writer)
+            if obj['inner_hits']['director']['hits']['total']['value'] == 1:
+                person_film.roles.append(Role.director)
+            main_obj.films.append(person_film)
+        return main_obj
+
     @staticmethod
-    async def get_objects_filter_from_elastic(filter_by: str, filter_field: str, search_body: dict) -> dict:
-        search_body['query'] = {
-            "bool": {
-                "should": [
-                    {
-                        "nested": {
-                            "path": filter_field,
-                            "query": {
-                                "term": {
-                                    f"{filter_field}.id": filter_by
-                                }
-                            }
+    async def get_objects_filter_from_elastic(dict_filter: dict, search_body: dict) -> dict:
+        should = []
+        for filter_field, filter_by in dict_filter.items():
+            should.append({
+                "nested": {
+                    "path": filter_field,
+                    "query": {
+                        "term": {
+                            f"{filter_field}.id": filter_by
                         }
                     }
-                ]
+                }
+            })
+        search_body['query'] = {
+            "bool": {
+                "should": should
             }
         }
         return search_body

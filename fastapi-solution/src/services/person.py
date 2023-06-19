@@ -22,7 +22,14 @@ class PersonService(CacheMixin):
         persons = await self._objects_from_cache('search_person_' + search_text)
         if not persons:
             text = re.sub(' +', '~ ', search_text.rstrip()).rstrip() + '~'
-            persons = await self._search_person_from_elastic(text, page, page_size)
+            persons = await self.elastic_main.get_objects_query_from_elastic(
+                query=text, query_field='full_name', page=page, page_size=page_size, some_class=Person, index='persons'
+            )
+            result = []
+            for person in persons:
+                person = await self._get_person_roles_from_elastic(person)
+                result.append(person)
+            persons = result
             if not persons:
                 return []
             await self._put_objects_to_cache(persons, 'search_person_' + search_text)
@@ -32,43 +39,15 @@ class PersonService(CacheMixin):
         person = await self._object_from_cache(person_id)
         if not person:
             person = await self.elastic_main.get_obj_from_elastic(person_id, "persons", Person)
-            person = await self._get_person_roles_from_elastic(person)
-            if not person:
-                return None
-            await self._put_object_to_cache(person, person_id)
+            person = await self.elastic_main.inner_objects_elastic(
+                on_field='id', dict_filter={"actors": person.uuid, "director": person.uuid, "writers": person.uuid},
+                index='movies', some_class=PersonFilm, main_obj=person
+            )
+            # person = await self._get_person_roles_from_elastic(person)
+            # if not person:
+            #     return None
+            # await self._put_object_to_cache(person, person_id)
         return person
-
-    async def _get_person_from_elastic(self, person_id: str) -> Person | None:
-        try:
-            doc = await self.elastic.get(index='persons', id=person_id)
-            person = Person(**doc['_source'])
-            person = await self._get_person_roles_from_elastic(person)
-        except NotFoundError:
-            return None
-        return person
-
-    async def _search_person_from_elastic(
-            self, search_text: str,
-            page: int, page_size: int) -> list[Person]:
-        search_body = {
-                "query": {
-                    "query_string": {
-                        "default_field": "full_name",
-                        "query": search_text
-                    }
-                }
-            }
-        search_body.update(Paginator(page_size=page_size, page_number=page).get_paginate_body())
-        persons = await self.elastic.search(
-            index='persons',
-            body=search_body
-        )
-        result = []
-        for person in persons['hits']['hits']:
-            person = Person(**person['_source'])
-            person = await self._get_person_roles_from_elastic(person)
-            result.append(person)
-        return result
 
     async def _get_person_roles_from_elastic(self, person: Person) -> Person | None:
         films = await self.elastic.search(
