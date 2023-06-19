@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
 
+import logging
+
 import uvicorn
 from elasticsearch import AsyncElasticsearch
 from fastapi import FastAPI
@@ -9,6 +11,8 @@ from redis.asyncio import Redis
 from api.v1 import films, genres, persons
 from core.config import settings
 from db import elastic, redis
+
+from core.logger import LOGGING
 
 
 @asynccontextmanager
@@ -36,6 +40,6 @@ if __name__ == '__main__':
         'main:app',
         host='0.0.0.0',
         port=8000,
-        # log_config=LOGGING,
-        # log_level=logging.DEBUG,
+        log_config=LOGGING,
+        log_level=logging.DEBUG,
     )

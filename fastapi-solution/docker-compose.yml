@@ -55,26 +55,26 @@ services:
         - ./index.json:/usr/src/app/index.json
         - ./dump_elastic.json:/usr/src/app/dump_elastic.json
 
-  fast_api:
-      build: ./src
-      container_name: fast_api
-      restart: always
-      depends_on:
-        - elastic
-        - redis
-      env_file:
-        - ./.env.sample
-      expose:
-      - 8000
+  # fast_api:
+  #     build: ./src
+  #     container_name: fast_api
+  #     restart: always
+  #     depends_on:
+  #       - elastic
+  #       - redis
+  #     env_file:
+  #       - ./.env.sample
+  #     expose:
+  #     - 8000
 
-  nginx:
-    container_name: nginx
-    image: nginx:alpine
-    restart: always
-    depends_on:
-      - fast_api
-    ports:
-      - 80:80
-    volumes:
-      - ./nginx_config/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx_config/site.conf:/etc/nginx/conf.d/site.conf:ro
+  # nginx:
+  #   container_name: nginx
+  #   image: nginx:alpine
+  #   restart: always
+  #   depends_on:
+  #     - fast_api
+  #   ports:
+  #     - 80:80
+  #   volumes:
+  #     - ./nginx_config/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx_config/site.conf:/etc/nginx/conf.d/site.conf:ro

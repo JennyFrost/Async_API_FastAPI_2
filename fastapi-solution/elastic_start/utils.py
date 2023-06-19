@@ -21,8 +21,8 @@ def load_env():
     load_dotenv()
 
     el_dsl = DslEl(
-        host=os.getenv('HOST_EL'),
-        port=os.getenv('PORT_EL')
+        host=os.getenv('ELASTIC_HOST'),
+        port=os.getenv('ELASTIC_PORT')
     )
 
     storage_places = StoragePlace(
