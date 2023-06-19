@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 
+import uvicorn
 from elasticsearch import AsyncElasticsearch
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
@@ -30,11 +31,11 @@ app.include_router(films.router, prefix='/api/v1/films', tags=['films'])
 app.include_router(genres.router, prefix='/api/v1/genres', tags=['genres'])
 app.include_router(persons.router, prefix='/api/v1/persons', tags=['persons'])
 
-# if __name__ == '__main__':
-#     uvicorn.run(
-#         'main:app',
-#         host='0.0.0.0',
-#         port=8000,
-#         log_config=LOGGING,
-#         log_level=logging.DEBUG,
-#     )
+if __name__ == '__main__':
+    uvicorn.run(
+        'main:app',
+        host='0.0.0.0',
+        port=8000,
+        # log_config=LOGGING,
+        # log_level=logging.DEBUG,
+    )

@@ -34,15 +34,15 @@ services:
       xpack.security.enabled: 'false'
       ES_JAVA_OPTS: -Xms600m -Xmx600m
       discovery.type: single-node
-    expose:
-      - 9200
+    ports:
+      - 9200:9200
 
   redis:
     image: redis:6.2-alpine
     container_name: redis
     restart: always
-    expose:
-      - 6379
+    ports:
+      - 6379:6379
 
   elastic_start:
       build: ./elastic_start

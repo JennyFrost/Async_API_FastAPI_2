@@ -13,14 +13,9 @@ class ElasticMain:
             return None
         return some_class(**doc['_source'])
 
-    async def get_objects_from_elastic(self, page: int, page_size: int, index: str, some_class, sort_field: str = None) -> list[BaseModel]:
+    async def _base_get_objects_from_elastic(self, search_body: dict,  page: int, page_size: int, index: str, some_class, sort_field: str = None):
         try:
-            search_body = {"_source": [
-                    "id",
-                    "title",
-                    "imdb_rating"],
-                }
-            search_body.update({"query": {"match_all": {}}})
+            search_body.update({"_source": list(some_class.__fields__.keys())})
             search_body.update(Paginator(page_size=page_size, page_number=page).get_paginate_body())
             if sort_field:
                 search_body.update(Sort(sort_field=sort_field).get_sort_body())
@@ -28,6 +23,47 @@ class ElasticMain:
         except NotFoundError:
             return None
         return [some_class(**obj['_source']) for obj in objects['hits']['hits']]
+
+    async def get_objects_from_elastic(
+            self, page: int, page_size: int,
+            index: str, some_class, filter_by: str = None,
+            filter_field: str = None, sort_field: str = None) -> list[BaseModel]:
+        search_body = {}
+        if filter_by:
+            await self.get_objects_filter_from_elastic(filter_by, filter_field, search_body)
+        else:
+            search_body.update({"query": {"match_all": {}}})
+        return await self._base_get_objects_from_elastic(search_body,  page, page_size, index, some_class, sort_field)
+
+    async def get_objects_query_from_elastic(self, page: int, page_size: int, index: str, some_class, query: str, query_field: str) -> list[BaseModel]:
+        search_body = {}
+        search_body.update({"query": {
+                    "query_string": {
+                        "default_field": query_field,
+                        "query": query
+                    }
+                }})
+        return await self._base_get_objects_from_elastic(search_body, page, page_size, index, some_class)
+
+    @staticmethod
+    async def get_objects_filter_from_elastic(filter_by: str, filter_field: str, search_body: dict) -> dict:
+        search_body['query'] = {
+            "bool": {
+                "should": [
+                    {
+                        "nested": {
+                            "path": filter_field,
+                            "query": {
+                                "term": {
+                                    f"{filter_field}.id": filter_by
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+        return search_body
 
 
 class Paginator(BaseModel):

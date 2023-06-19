@@ -32,6 +32,7 @@ class PersonService(CacheMixin):
         person = await self._object_from_cache(person_id)
         if not person:
             person = await self.elastic_main.get_obj_from_elastic(person_id, "persons", Person)
+            person = await self._get_person_roles_from_elastic(person)
             if not person:
                 return None
             await self._put_object_to_cache(person, person_id)

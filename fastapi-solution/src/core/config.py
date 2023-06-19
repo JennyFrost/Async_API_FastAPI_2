@@ -1,6 +1,9 @@
 import os
 from pydantic import BaseSettings, Field
 from logging import config as logging_config
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from .logger import LOGGING
 
@@ -18,7 +21,7 @@ class Settings(BaseSettings):
     sort_field: str = "-imdb_rating"
 
     class Config:
-        env_file = '.env.sample'
+        env_file = '.env.debug'
 
 
 settings = Settings()
