@@ -50,7 +50,7 @@ services:
       depends_on:
         - elastic
       env_file:
-        - ./.env.sample
+        - ./elastic_start/.env.sample
       volumes:
         - ./index.json:/usr/src/app/index.json
         - ./dump_elastic.json:/usr/src/app/dump_elastic.json
