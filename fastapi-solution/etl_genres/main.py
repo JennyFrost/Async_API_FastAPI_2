@@ -50,7 +50,7 @@ class ETLProcess:
             loader.create_index()
         return loader.load_data(data)
 
-    @sleep_func(time_to_sleep=120)
+    @sleep_func(time_to_sleep=10)
     def etl(self) -> dict[str] | None:
         storage = state.JsonFileStorage(file_path='current_state.json')
         cur_state_dict = storage.retrieve_state()
