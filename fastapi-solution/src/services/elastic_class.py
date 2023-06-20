@@ -3,8 +3,6 @@ import re
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from pydantic import BaseModel
 
-from models.person import Role
-
 
 class ElasticMain:
     def __init__(self, elastic: AsyncElasticsearch):

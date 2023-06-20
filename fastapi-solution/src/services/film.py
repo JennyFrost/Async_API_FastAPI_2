@@ -1,7 +1,6 @@
-import re
 from functools import lru_cache
 
-from elasticsearch import AsyncElasticsearch, NotFoundError
+from elasticsearch import AsyncElasticsearch
 from fastapi import Depends
 from redis.asyncio import Redis
 
@@ -9,7 +8,7 @@ from db.elastic import get_elastic
 from db.redis import get_redis
 
 from models.film import Film, FilmBase
-from services.redis_mixins import CacheMixin, Paginator, Sort
+from services.redis_mixins import CacheMixin
 from services.elastic_class import ElasticMain
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5

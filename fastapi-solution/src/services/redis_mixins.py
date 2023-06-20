@@ -37,38 +37,4 @@ class CacheMixin(MainServiceMixin):
         await self.redis.set(some_id, objects, time_cache)
 
 
-class Paginator(BaseModel):
-    page_number: int
-    page_size: int
-
-    def get_paginate_body(self) -> dict:
-        start_number = (self.page_number - 1) * self.page_size
-        start_number = start_number if start_number > 0 else 0
-        paginator_body = {
-            "from": start_number,
-            "size": self.page_size
-        }
-        return paginator_body
-
-
-class Sort(BaseModel):
-    sort_field: str
-    order: str = "asc"
-
-    def get_sort_body(self) -> dict:
-        if self.sort_field[0] == '-':
-            self.order = "desc"
-            self.sort_field = self.sort_field[1:]
-        sort_body = {
-            "sort": [
-                    {
-                        self.sort_field: {
-                            "order": self.order
-                        }
-                    }
-                    ]
-        }
-        return sort_body
-
-
 

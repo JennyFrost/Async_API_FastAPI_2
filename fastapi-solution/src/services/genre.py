@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from elasticsearch import AsyncElasticsearch, NotFoundError
+from elasticsearch import AsyncElasticsearch
 from fastapi import Depends
 from redis.asyncio import Redis
 
@@ -9,7 +9,7 @@ from db.redis import get_redis
 from models.genre import Genre
 from services.elastic_class import ElasticMain
 
-from services.redis_mixins import CacheMixin, Paginator
+from services.redis_mixins import CacheMixin
 
 GENRES_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 

@@ -1,14 +1,13 @@
-import re
 from functools import lru_cache
 
-from elasticsearch import AsyncElasticsearch, NotFoundError
+from elasticsearch import AsyncElasticsearch
 from fastapi import Depends
 from redis.asyncio import Redis
 
 from db.elastic import get_elastic
 from db.redis import get_redis
 from models.person import Role, Person, PersonFilm
-from services.redis_mixins import CacheMixin, Paginator
+from services.redis_mixins import CacheMixin
 from services.elastic_class import ElasticMain
 
 PERSON_CACHE_EXPIRE_IN_SECONDS = 60 * 2
