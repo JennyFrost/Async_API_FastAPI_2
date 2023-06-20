@@ -57,10 +57,9 @@ def backoff(start_sleep_time: float = 0.1, factor: int = 2, border_sleep_time: i
         @wraps(func)
         def inner(*args, **kwargs):
             t = start_sleep_time
-            n = 0
             while True:
                 if t < border_sleep_time:
-                    t *= factor ** n
+                    t = t * factor
                 else:
                     t = border_sleep_time
                 try:
@@ -69,6 +68,30 @@ def backoff(start_sleep_time: float = 0.1, factor: int = 2, border_sleep_time: i
                         elasticsearch.exceptions.ConnectionTimeout):
                     logger.error('Database does not respond! Trying again')
                     time.sleep(t)
-                    n += 1
         return inner
     return func_wrapper
+
+# def backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10):
+#     """
+#     Функция для повторного выполнения функции
+
+#     """
+#     # Декоратор работает с методами PostgresManage.get_conn_pg и ElasticMain.elastic_client
+#     # Они возвращают либо экземпляр клиента или коннектор либо None
+#     # Если они будут возвращать None то цикл будет работать бесконечно
+#     def func_wrapper(func):
+#         @wraps(func)
+#         def inner(*arg, **kwargs):
+#             t = start_sleep_time
+#             argument = arg[1] if len(arg) > 1 else arg[0]
+#             while True:
+#                 conn = func(argument)
+#                 if conn:
+#                     return conn
+#                 time.sleep(t)
+#                 if t < border_sleep_time:
+#                     t = t * factor
+#                 else:
+#                     t = border_sleep_time
+#         return inner
+#     return func_wrapper 
