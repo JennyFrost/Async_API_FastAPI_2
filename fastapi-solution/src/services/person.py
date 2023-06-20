@@ -21,9 +21,8 @@ class PersonService(CacheMixin):
             page: int, page_size: int) -> list[Person]:
         persons = await self._objects_from_cache('search_person_' + search_text)
         if not persons:
-            text = re.sub(' +', '~ ', search_text.rstrip()).rstrip() + '~'
             persons = await self.elastic_main.get_objects_query_from_elastic(
-                query=text, query_field='full_name', page=page, page_size=page_size, some_class=Person, index='persons'
+                query=search_text, query_field='full_name', page=page, page_size=page_size, some_class=Person, index='persons'
             )
             result = []
             for person in persons:
@@ -39,62 +38,18 @@ class PersonService(CacheMixin):
         person = await self._object_from_cache(person_id)
         if not person:
             person = await self.elastic_main.get_obj_from_elastic(person_id, "persons", Person)
-            person = await self.elastic_main.inner_objects_elastic(
-                on_field='id', dict_filter={"actors": person.uuid, "director": person.uuid, "writers": person.uuid},
-                index='movies', some_class=PersonFilm, main_obj=person
-            )
-            # person = await self._get_person_roles_from_elastic(person)
-            # if not person:
-            #     return None
-            # await self._put_object_to_cache(person, person_id)
+            if not person:
+                return None
+            person = await self._get_person_roles_from_elastic(person)
+            await self._put_object_to_cache(person, person_id)
         return person
 
     async def _get_person_roles_from_elastic(self, person: Person) -> Person | None:
-        films = await self.elastic.search(
-            index='movies',
-            body={
-                "_source": ["id"],
-                "query": {
-                    "bool": {
-                        "should": [
-                            {
-                                "nested": {
-                                    "path": "actors",
-                                    "query": {
-                                        "term": {
-                                            "actors.id": person.uuid
-                                        }
-                                    },
-                                    "inner_hits": {}
-                                }
-                            },
-                            {
-                                "nested": {
-                                    "path": "director",
-                                    "query": {
-                                        "term": {
-                                            "director.id": person.uuid
-                                        }
-                                    },
-                                    "inner_hits": {}
-                                }
-                            },
-                            {
-                                "nested": {
-                                    "path": "writers",
-                                    "query": {
-                                        "term": {
-                                            "writers.id": person.uuid
-                                        }
-                                    },
-                                    "inner_hits": {}
-                                }
-                            }
-                        ]
-                    }
-                }
-            }
-        )
+        films = await self.elastic_main.inner_objects_elastic(
+            source_field='id',
+            dict_filter={"actors": person.uuid, "director": person.uuid, "writers": person.uuid},
+            index='movies')
+
         for film in films['hits']['hits']:
             film_id = film['_source']['id']
             person_film = PersonFilm(uuid=film_id)

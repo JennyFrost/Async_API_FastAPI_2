@@ -1,3 +1,5 @@
+import re
+
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from pydantic import BaseModel
 
@@ -31,10 +33,10 @@ class ElasticMain:
     async def get_objects_from_elastic(
             self, page: int, page_size: int,
             index: str, some_class, dict_filter: dict = None, sort_field: str = None) -> list[BaseModel]:
-        """достать твсе элементы"""
+        """достать все элементы"""
         search_body = {}
         if dict_filter:
-            await self.get_objects_filter_from_elastic(dict_filter=dict_filter, search_body=search_body)
+            search_body = await self.get_objects_filter_from_elastic(dict_filter=dict_filter, search_body=search_body)
         else:
             search_body.update({"query": {"match_all": {}}})
         objects = await self._base_get_objects_from_elastic(search_body,  page, page_size, index, some_class, sort_field)
@@ -45,6 +47,7 @@ class ElasticMain:
 
     async def get_objects_query_from_elastic(self, page: int, page_size: int, index: str, some_class, query: str, query_field: str) -> list[BaseModel]:
         """поиск элементов"""
+        query = re.sub(' +', '~ ', query.rstrip()).rstrip() + '~'
         search_body = {}
         search_body.update({"query": {
                     "query_string": {
@@ -54,25 +57,15 @@ class ElasticMain:
                 }})
         return await self._base_get_objects_from_elastic(search_body, page, page_size, index, some_class)
 
-    async def inner_objects_elastic(self, on_field: str, dict_filter: dict,
-                index: str, some_class, main_obj):
+    async def inner_objects_elastic(self, source_field: str, dict_filter: dict,
+                index: str):
         search_body = {}
         search_body = await self.get_objects_filter_from_elastic(dict_filter=dict_filter, search_body=search_body)
         [i['nested'].update({"inner_hits": {}}) for i in search_body['query']['bool']['should']]
-        search_body.update({"_source": [on_field]})
+        search_body.update({"_source": [source_field]})
 
         objects = await self.elastic.search(index=index, body=search_body)
-        for obj in objects['hits']['hits']:
-            film_id = obj['_source']['id']
-            person_film = some_class(uuid=film_id)
-            if obj['inner_hits']['actors']['hits']['total']['value'] == 1:
-                person_film.roles.append(Role.actor)
-            if obj['inner_hits']['writers']['hits']['total']['value'] == 1:
-                person_film.roles.append(Role.writer)
-            if obj['inner_hits']['director']['hits']['total']['value'] == 1:
-                person_film.roles.append(Role.director)
-            main_obj.films.append(person_film)
-        return main_obj
+        return objects
 
     @staticmethod
     async def get_objects_filter_from_elastic(dict_filter: dict, search_body: dict) -> dict:

@@ -30,9 +30,8 @@ class FilmService(CacheMixin):
         key_for_cache = f"films_page_{page}_size_{page_size}_query_{query}"
         films = await self._objects_from_cache(key_for_cache)
         if not films:
-            text = re.sub(' +', '~ ', query.rstrip()).rstrip() + '~'
             films = await self.elastic_main.get_objects_query_from_elastic(
-                query=text, query_field='title', page=page, page_size=page_size, some_class=FilmBase, index='movies'
+                query=query, query_field='title', page=page, page_size=page_size, some_class=FilmBase, index='movies'
             )
             if not films:
                 return []
@@ -48,7 +47,7 @@ class FilmService(CacheMixin):
         if not page_films:
             dict_filter = None
             if genre:
-                dict_filter = {'genre', genre}
+                dict_filter = {'genre': genre}
             page_films = await self.elastic_main.get_objects_from_elastic(
                 page=page, page_size=size,
                 index='movies', some_class=FilmBase,
