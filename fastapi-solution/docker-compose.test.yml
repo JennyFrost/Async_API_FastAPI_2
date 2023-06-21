@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  elastic:
+    image: elasticsearch:8.6.2
+    container_name: elasticsearch
+    restart: always
+    environment:
+      xpack.security.enabled: 'false'
+      ES_JAVA_OPTS: -Xms600m -Xmx600m
+      discovery.type: single-node
+    ports:
+      - 9200:9200
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - 6379:6379
+
+  fast_api:
+     build: ./src
+     container_name: fast_api
+     restart: always
+     depends_on:
+       - elastic
+       - redis
+     env_file:
+       - ./.env.sample
+     ports:
+     - 8000:8000
