@@ -20,12 +20,12 @@ import time
 #     # await es_client.close()
 
 
-@pytest.fixture(scope='session')
-async def create_index_movies(es_client_conn):
-    if es_client_conn.indices.exists(index=test_settings_movies.es_index):
-        await es_client_conn.indices.create(index=test_settings_movies.es_index, body=test_settings_movies.es_index_mapping)
-        print('yes')
-    print('no')
+# @pytest.fixture(scope='session')
+# async def create_index_movies(es_client_conn):
+#     if es_client_conn.indices.exists(index=test_settings_movies.es_index):
+#         await es_client_conn.indices.create(index=test_settings_movies.es_index, body=test_settings_movies.es_index_mapping)
+#         print('yes')
+#     print('no')
     # return es_client_conn
 
 
@@ -34,13 +34,7 @@ def es_write_data(es_client_conn):
     async def inner(data: list[dict]):
         actions = []
         for doc in data:
-            action = {
-                "index": {
-                    '_index': 'movies',
-                    '_id': doc['id']
-                }
-            }
-            action.update(doc)
+            action = {'_index': 'movies', '_id': doc['id'], "_source": doc}
             actions.append(action)
         if await es_client_conn.indices.exists(index=test_settings_movies.es_index):
             await es_client_conn.indices.delete(index=test_settings_movies.es_index)
