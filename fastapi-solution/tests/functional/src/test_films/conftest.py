@@ -2,7 +2,7 @@ import pytest
 
 from elasticsearch import AsyncElasticsearch
 
-from functional.settings import test_settings_movies
+from ...settings import test_settings_movies
 import time
 
 
@@ -42,11 +42,10 @@ def es_write_data(es_client_conn):
             }
             action.update(doc)
             actions.append(action)
-        if not await es_client_conn.indices.exists(index=test_settings_movies.es_index):
-            await es_client_conn.indices.create(index=test_settings_movies.es_index,
-                                                body=test_settings_movies.es_index_mapping)
-            print('yes')
-        print('no')
+        if await es_client_conn.indices.exists(index=test_settings_movies.es_index):
+            await es_client_conn.indices.delete(index=test_settings_movies.es_index)
+        await es_client_conn.indices.create(index=test_settings_movies.es_index,
+                                            body=test_settings_movies.es_index_mapping)
         # await es_client_conn.delete_by_query(index=test_settings_movies.es_index, body={"query": {"match_all": {}}})
         response = await es_client_conn.bulk(body=actions, refresh=True)
         if response['errors']:

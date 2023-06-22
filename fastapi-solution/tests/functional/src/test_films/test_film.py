@@ -9,7 +9,7 @@ import pytest
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.helpers import async_bulk
 
-from functional.settings import test_settings_movies
+from ...settings import test_settings_movies
 
 
 #  Название теста должно начинаться со слова `test_`
