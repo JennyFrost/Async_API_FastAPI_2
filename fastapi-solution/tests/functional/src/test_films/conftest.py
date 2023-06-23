@@ -1,4 +1,8 @@
 import pytest
+import uuid
+import random
+import string
+from datetime import datetime
 
 from elasticsearch import AsyncElasticsearch
 
@@ -6,42 +10,62 @@ from ...settings import test_settings_movies
 import time
 
 
-# @pytest.fixture(scope='session')
-# async def create_index_movies():
-#     es_client = AsyncElasticsearch(hosts=test_settings_movies.es_host)
-#     if not es_client.indices.exists(index=test_settings_movies.es_index):
-#         await es_client.indices.create(index=test_settings_movies.es_index, body=test_settings_movies.es_index_mapping)
-#         print('yes')
-#     print('no')
-#     yield es_client
-#     await es_client.close()
-#     # time.sleep(20)
-#     # await es_client.indices.delete(index=test_settings_movies.es_index)
-#     # await es_client.close()
-
-
-# @pytest.fixture(scope='session')
-# async def create_index_movies(es_client_conn):
-#     if es_client_conn.indices.exists(index=test_settings_movies.es_index):
-#         await es_client_conn.indices.create(index=test_settings_movies.es_index, body=test_settings_movies.es_index_mapping)
-#         print('yes')
-#     print('no')
-    # return es_client_conn
+@pytest.fixture
+def es_client_conn():
+    es_client = AsyncElasticsearch(hosts=f'{test_settings_movies.es_host}:{test_settings_movies.es_port}')
+    return es_client
+    # await es_client.close()
 
 
 @pytest.fixture
-def es_write_data(es_client_conn):
+def es_write_data(es_client_conn: AsyncElasticsearch):
     async def inner(data: list[dict]):
-        actions = []
-        for doc in data:
-            action = {'_index': 'movies', '_id': doc['id'], "_source": doc}
-            actions.append(action)
         if await es_client_conn.indices.exists(index=test_settings_movies.es_index):
             await es_client_conn.indices.delete(index=test_settings_movies.es_index)
         await es_client_conn.indices.create(index=test_settings_movies.es_index,
                                             body=test_settings_movies.es_index_mapping)
-        # await es_client_conn.delete_by_query(index=test_settings_movies.es_index, body={"query": {"match_all": {}}})
-        response = await es_client_conn.bulk(body=actions, refresh=True)
+        response = await es_client_conn.bulk(body=data)
+        await es_client_conn.close()
         if response['errors']:
             raise Exception('Ошибка записи данных в Elasticsearch')
+    return inner
+
+
+@pytest.fixture
+def generate_random_data():
+    async def inner(num_documents):
+        documents = []
+        for _ in range(num_documents):
+            doc = {
+                'id': str(uuid.uuid4()),
+                'imdb_rating': random.uniform(0, 10),
+                'genre': {
+                    'id': str(uuid.uuid4()),
+                    'name': ''.join(random.choices(string.ascii_letters, k=5))
+                },
+                'title': 'The Star',
+                'description': ''.join(random.choices(string.ascii_letters, k=20)),
+                'creation_date': datetime.now().strftime('%Y-%m-%d'),
+                'director': {
+                    'id': str(uuid.uuid4()),
+                    'name': ''.join(random.choices(string.ascii_letters, k=5))
+                },
+                'actors_names': [''.join(random.choices(string.ascii_letters, k=5)) for _ in range(3)],
+                'writers_names': [''.join(random.choices(string.ascii_letters, k=5)) for _ in range(2)],
+                'actors': [
+                    {'id': str(uuid.uuid4()),
+                     'name': ''.join(random.choices(string.ascii_letters, k=5))}
+                    for _ in range(3)
+                ],
+                'writers': [
+                    {'id': str(uuid.uuid4()),
+                     'name': ''.join(random.choices(string.ascii_letters, k=5))}
+                    for _ in range(2)
+                ]
+            }
+
+            documents.append({'index': {'_index': 'movies', '_id': doc['id']}})
+            documents.append(doc)
+        print(len(documents))
+        return documents
     return inner
