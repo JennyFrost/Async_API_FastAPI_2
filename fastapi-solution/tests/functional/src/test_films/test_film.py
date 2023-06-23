@@ -28,7 +28,7 @@ from ...settings import test_settings_movies
         )
     ]
 )
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_search(query_data, expected_answer, es_write_data, generate_random_data):
     # 1. Генерируем данные для ES
     x = await generate_random_data(60)
