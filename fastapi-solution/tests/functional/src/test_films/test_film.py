@@ -62,7 +62,7 @@ async def test_all_films_sort(query_data, expected_answer, es_write_data, genera
                 {'status': 200, 'length': 20}
         ),
         (
-                {'genre': '2dasd31234'},
+                {'genre': '2dasd31234', 'page_size': 50},
                 {'status': 200, 'length': 20}
         )
     ]
@@ -75,5 +75,6 @@ async def test_all_films_filter(query_data, expected_answer, es_write_data, gene
     time.sleep(1)
     response = await http_request(query_data, '/api/v1/films')
     assert response['status'] == expected_answer['status']
+    assert len(response['body']['result']) == expected_answer['length']
 
 
