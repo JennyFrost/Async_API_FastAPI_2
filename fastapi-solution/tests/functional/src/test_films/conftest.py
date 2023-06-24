@@ -1,14 +1,14 @@
 import pytest
-import pytest_asyncio
 import uuid
 import random
 import string
+import aiohttp
 from datetime import datetime
 
 from elasticsearch import AsyncElasticsearch
 
 from ...settings import test_settings_movies
-import time
+from ...testdata.film import Film, Genre, PersonBase
 
 
 @pytest.fixture(scope="session")
@@ -21,8 +21,6 @@ async def es_client_conn():
     es_client = AsyncElasticsearch(hosts=f'{test_settings_movies.es_host}:{test_settings_movies.es_port}')
     async with es_client as conv:
         yield conv
-    # yield es_client
-    # await es_client.close()
 
 
 @pytest.fixture
@@ -39,40 +37,74 @@ def es_write_data(es_client_conn):
 
 
 @pytest.fixture
-def generate_random_data():
-    async def inner(num_documents):
+def generate_films_filter_genre(generate_films, generate_genre):
+    async def inner(num_documents, genre_id):
+        genres = await generate_genre(2)
+        genres.append(Genre(id=genre_id, name='asd'))
+        return await generate_films(num_documents=num_documents, genres=genres)
+    return inner
+
+
+@pytest.fixture
+def generate_films(generate_person, generate_genre):
+    async def inner(num_documents,
+                    title: str = None,
+                    actors: list[PersonBase] = None,
+                    writers: list[PersonBase] = None,
+                    director: list[PersonBase] = None,
+                    genres: list[Genre] = None):
         documents = []
         for _ in range(num_documents):
-            doc = {
-                'id': str(uuid.uuid4()),
-                'imdb_rating': random.uniform(0, 10),
-                'genre': {
-                    'id': str(uuid.uuid4()),
-                    'name': ''.join(random.choices(string.ascii_letters, k=5))
-                },
-                'title': 'The Star',
-                'description': ''.join(random.choices(string.ascii_letters, k=20)),
-                'creation_date': datetime.now().strftime('%Y-%m-%d'),
-                'director': {
-                    'id': str(uuid.uuid4()),
-                    'name': ''.join(random.choices(string.ascii_letters, k=5))
-                },
-                'actors_names': [''.join(random.choices(string.ascii_letters, k=5)) for _ in range(3)],
-                'writers_names': [''.join(random.choices(string.ascii_letters, k=5)) for _ in range(2)],
-                'actors': [
-                    {'id': str(uuid.uuid4()),
-                     'name': ''.join(random.choices(string.ascii_letters, k=5))}
-                    for _ in range(3)
-                ],
-                'writers': [
-                    {'id': str(uuid.uuid4()),
-                     'name': ''.join(random.choices(string.ascii_letters, k=5))}
-                    for _ in range(2)
-                ]
-            }
-
-            documents.append({'index': {'_index': 'movies', '_id': doc['id']}})
-            documents.append(doc)
-        print(len(documents))
+            if actors is None:
+                actors = await generate_person(3)
+            if writers is None:
+                writers = await generate_person(3)
+            if director:
+                director = await generate_person(3)
+            if genres is None:
+                genres = await generate_genre(3)
+            doc = Film(
+                id=str(uuid.uuid4()),
+                title=''.join(random.choices(string.ascii_letters, k=7)) if title is None else title,
+                imdb_rating=random.uniform(1, 10),
+                description=''.join(random.choices(string.ascii_letters, k=20)),
+                creation_date=datetime.now().strftime('%Y-%m-%d'),
+                genre=genres,
+                actors=actors,
+                writers=writers,
+                director=director
+            )
+            documents.append({'index': {'_index': 'movies', '_id': doc.id}})
+            documents.append(doc.dict())
         return documents
+    return inner
+
+
+@pytest.fixture(scope='session')
+def generate_person():
+    async def inner(count):
+        return [PersonBase(id=str(uuid.uuid4()), name=''.join(random.choices(string.ascii_letters, k=5))) for _ in
+         range(count)]
+    return inner
+
+
+@pytest.fixture(scope='session')
+def generate_genre():
+    async def inner(count) -> list[Genre]:
+        return [Genre(id=str(uuid.uuid4()), name=''.join(random.choices(string.ascii_letters, k=5))) for _ in
+         range(count)]
+    return inner
+
+
+@pytest.fixture
+def http_request():
+    async def inner(query_data, url_path):
+        session = aiohttp.ClientSession()
+        url = test_settings_movies.service_url + url_path
+        async with session.get(url, params=query_data) as response:
+            body = await response.json()
+            headers = response.headers
+            status = response.status
+        await session.close()
+        return {'body': body, 'status': status}
     return inner
