@@ -5,32 +5,43 @@ import pydantic
 
 
 @pytest.mark.parametrize(
-    'query_data, expected_answer, count_double_title',
+    'query_data, expected_answer, reset_redis_flag',
     [
         (
                 {'query': 'The star', 'page_size': 50},
                 {'status': 200, 'length': 50},
-                50
+                True
         ),
         (
                 {'query': 'Mashed'},
                 {'status': 200, 'length': 1},
-                1
+                True
         ),
         (
                 {'query': 'Mashed'},
                 {'status': 200, 'length': 2},
-                2
+                False
+        ),
+        (
+                {'query': 'Mashed'},
+                {'status': 200, 'length': 2},
+                True
         )
     ]
 )
 @pytest.mark.anyio
-async def test_search(query_data, expected_answer, count_double_title, es_write_data, generate_films, http_request):
-    es_data = await generate_films(num_documents=count_double_title, title=query_data['query'])
+async def test_search(query_data, expected_answer, reset_redis_flag, es_write_data, generate_films, http_request, reset_redis, es_delete_index_film):
+    es_data = await generate_films(
+        num_documents=expected_answer['length'],
+        title=query_data['query'])
     es_data.extend(await generate_films(num_documents=60))
-    await es_write_data(es_data)
+    await es_write_data(data=es_data)
     time.sleep(1)
     response = await http_request(query_data, '/api/v1/films/search')
+    if reset_redis_flag:
+        await reset_redis()
+    else:
+        await es_delete_index_film()
     assert response['status'] == expected_answer['status']
     assert len(response['body']['result']) == expected_answer['length']
 

@@ -6,6 +6,7 @@ import aiohttp
 from datetime import datetime
 
 from elasticsearch import AsyncElasticsearch
+from redis import Redis
 
 from ...settings import test_settings_movies
 from ...testdata.film import Film, Genre, PersonBase
@@ -23,6 +24,19 @@ async def es_client_conn():
         yield conv
 
 
+@pytest.fixture(scope='session')
+async def redis_client_conn():
+    redis_client = Redis(host=test_settings_movies.redis_host, port=test_settings_movies.redis_port)
+    yield redis_client
+    redis_client.close()
+
+
+@pytest.fixture
+def reset_redis(redis_client_conn):
+    async def inner():
+        redis_client_conn.flushall()
+    return inner
+
 @pytest.fixture
 def http_request():
     async def inner(query_data, url_path):
@@ -38,15 +52,22 @@ def http_request():
 
 
 @pytest.fixture
-def es_write_data(es_client_conn):
+def es_write_data(es_client_conn, es_delete_index_film):
     async def inner(data: list[dict]):
-        if await es_client_conn.indices.exists(index=test_settings_movies.es_index):
-            await es_client_conn.indices.delete(index=test_settings_movies.es_index)
+        await es_delete_index_film()
         await es_client_conn.indices.create(index=test_settings_movies.es_index,
                                             body=test_settings_movies.es_index_mapping)
         response = await es_client_conn.bulk(body=data)
         if response['errors']:
             raise Exception('Ошибка записи данных в Elasticsearch')
+    return inner
+
+
+@pytest.fixture
+def es_delete_index_film(es_client_conn):
+    async def inner():
+        if await es_client_conn.indices.exists(index=test_settings_movies.es_index):
+            await es_client_conn.indices.delete(index=test_settings_movies.es_index)
     return inner
 
 
