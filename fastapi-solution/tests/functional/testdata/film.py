@@ -1,5 +1,6 @@
 from datetime import date
 
+import uuid
 from pydantic import BaseModel
 
 
@@ -26,3 +27,9 @@ class Film(FilmBase):
     actors: list[PersonBase] | None = []
     writers: list[PersonBase] | None = []
     director: list[PersonBase] | None = []
+
+
+class BaseFilmRequest(BaseModel):
+    uuid: uuid.UUID
+    title: str
+    imdb_rating: float | None

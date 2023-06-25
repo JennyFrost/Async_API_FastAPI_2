@@ -24,6 +24,20 @@ async def es_client_conn():
 
 
 @pytest.fixture
+def http_request():
+    async def inner(query_data, url_path):
+        session = aiohttp.ClientSession()
+        url = test_settings_movies.service_url + url_path
+        async with session.get(url, params=query_data) as response:
+            body = await response.json()
+            headers = response.headers
+            status = response.status
+        await session.close()
+        return {'body': body, 'status': status}
+    return inner
+
+
+@pytest.fixture
 def es_write_data(es_client_conn):
     async def inner(data: list[dict]):
         if await es_client_conn.indices.exists(index=test_settings_movies.es_index):
@@ -40,7 +54,7 @@ def es_write_data(es_client_conn):
 def generate_films_filter_genre(generate_films, generate_genre):
     async def inner(num_documents, genre_id):
         genres = await generate_genre(2)
-        genres.append(Genre(id=genre_id, name='asd'))
+        genres.append(Genre(id=genre_id, name=''.join(random.choices(string.ascii_letters, k=20))))
         return await generate_films(num_documents=num_documents, genres=genres)
     return inner
 
@@ -93,18 +107,4 @@ def generate_genre():
     async def inner(count) -> list[Genre]:
         return [Genre(id=str(uuid.uuid4()), name=''.join(random.choices(string.ascii_letters, k=5))) for _ in
          range(count)]
-    return inner
-
-
-@pytest.fixture
-def http_request():
-    async def inner(query_data, url_path):
-        session = aiohttp.ClientSession()
-        url = test_settings_movies.service_url + url_path
-        async with session.get(url, params=query_data) as response:
-            body = await response.json()
-            headers = response.headers
-            status = response.status
-        await session.close()
-        return {'body': body, 'status': status}
     return inner
