@@ -19,7 +19,7 @@ def anyio_backend():
 
 @pytest.fixture(scope='session')
 async def es_client_conn():
-    es_client = AsyncElasticsearch(hosts=f'{test_settings_movies.es_host}:{test_settings_movies.es_port}')
+    es_client = AsyncElasticsearch(hosts=f'http://{test_settings_movies.es_host}:{test_settings_movies.es_port}')
     async with es_client as conv:
         yield conv
 
