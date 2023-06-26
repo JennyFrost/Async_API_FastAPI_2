@@ -2,73 +2,10 @@ import pytest
 import uuid
 import random
 import string
-import aiohttp
 from datetime import datetime
 
-from elasticsearch import AsyncElasticsearch
-from redis import Redis
-
-from ...settings import test_settings_movies
 from ...testdata.film import Film, Genre, PersonBase
-
-
-@pytest.fixture(scope="session")
-def anyio_backend():
-    return "asyncio"
-
-
-@pytest.fixture(scope='session')
-async def es_client_conn():
-    es_client = AsyncElasticsearch(hosts=f'http://{test_settings_movies.es_host}:{test_settings_movies.es_port}')
-    async with es_client as conv:
-        yield conv
-
-
-@pytest.fixture(scope='session')
-async def redis_client_conn():
-    redis_client = Redis(host=test_settings_movies.redis_host, port=test_settings_movies.redis_port)
-    yield redis_client
-    redis_client.close()
-
-
-@pytest.fixture
-def reset_redis(redis_client_conn):
-    async def inner():
-        redis_client_conn.flushall()
-    return inner
-
-@pytest.fixture
-def http_request():
-    async def inner(query_data, url_path):
-        session = aiohttp.ClientSession()
-        url = test_settings_movies.service_url + url_path
-        async with session.get(url, params=query_data) as response:
-            body = await response.json()
-            headers = response.headers
-            status = response.status
-        await session.close()
-        return {'body': body, 'status': status}
-    return inner
-
-
-@pytest.fixture
-def es_write_data(es_client_conn, es_delete_index_film):
-    async def inner(data: list[dict]):
-        await es_delete_index_film()
-        await es_client_conn.indices.create(index=test_settings_movies.es_index,
-                                            body=test_settings_movies.es_index_mapping)
-        response = await es_client_conn.bulk(body=data)
-        if response['errors']:
-            raise Exception('Ошибка записи данных в Elasticsearch')
-    return inner
-
-
-@pytest.fixture
-def es_delete_index_film(es_client_conn):
-    async def inner():
-        if await es_client_conn.indices.exists(index=test_settings_movies.es_index):
-            await es_client_conn.indices.delete(index=test_settings_movies.es_index)
-    return inner
+from ...settings import test_settings_movies
 
 
 @pytest.fixture
@@ -109,7 +46,7 @@ def generate_films(generate_person, generate_genre):
                 writers=writers,
                 director=director
             )
-            documents.append({'index': {'_index': 'movies', '_id': doc.id}})
+            documents.append({'index': {'_index': test_settings_movies.es_index, '_id': doc.id}})
             documents.append(doc.dict())
         return documents
     return inner
