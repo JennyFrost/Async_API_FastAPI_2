@@ -25,7 +25,7 @@ from ...settings import test_settings_movies
         ),
         (
                 {'query': 'Mashed'},
-                {'status': 200, 'length': 2},
+                {'status': 200, 'length': 2, 'fake_title': 'terter'},
                 True
         )
     ]
@@ -33,9 +33,10 @@ from ...settings import test_settings_movies
 @pytest.mark.anyio
 async def test_search(query_data, expected_answer, reset_redis_flag, es_write_data, generate_films, http_request, reset_redis, es_delete_index_film):
     '''тест поиска фильмов'''
+    title = expected_answer['fake_title'] if expected_answer.get('fake_title') else query_data['query']
     es_data = await generate_films(
         num_documents=expected_answer['length'],
-        title=query_data['query'])
+        title=title)
     es_data.extend(await generate_films(num_documents=60))
     await es_write_data(data=es_data, index_name=test_settings_movies.es_index,
                         index_mapping=test_settings_movies.es_index_mapping)
