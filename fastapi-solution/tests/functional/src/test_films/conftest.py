@@ -20,6 +20,7 @@ def generate_films_filter_genre(generate_films, generate_genre):
 @pytest.fixture
 def generate_films(generate_person, generate_genre):
     async def inner(num_documents,
+                    film_id: str = None,
                     title: str = None,
                     actors: list[PersonBase] = None,
                     writers: list[PersonBase] = None,
@@ -31,12 +32,12 @@ def generate_films(generate_person, generate_genre):
                 actors = await generate_person(3)
             if writers is None:
                 writers = await generate_person(3)
-            if director:
+            if director is None:
                 director = await generate_person(3)
             if genres is None:
                 genres = await generate_genre(3)
             doc = Film(
-                id=str(uuid.uuid4()),
+                id=str(uuid.uuid4()) if film_id is None else film_id,
                 title=''.join(random.choices(string.ascii_letters, k=7)) if title is None else title,
                 imdb_rating=random.uniform(1, 10),
                 description=''.join(random.choices(string.ascii_letters, k=20)),
