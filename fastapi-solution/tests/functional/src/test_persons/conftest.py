@@ -96,9 +96,10 @@ async def gen_doc_persons(persons: list[PersonForIndex]):
 def gen_data_person_tests():
     async def inner(data: dict):
         prime_person = [PersonForIndex(uuid=str(uuid.uuid4()), full_name=name_person) for name_person in data.get("names")]
+        persons_: dict = {model_p.full_name: model_p.uuid for model_p in prime_person}
         movies_person_doc = await gen_doc_films(data.get("movies"), prime_person)
         prime_person_doc = await gen_doc_persons(prime_person)
-        return {"movies": movies_person_doc, "persons": prime_person_doc}
+        return {"movies": movies_person_doc, "persons": prime_person_doc, "persons_": persons_}
     return inner
 
 
