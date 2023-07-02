@@ -29,18 +29,16 @@ def backoff_break(start_sleep_time: float = 0.1, factor: int = 2, border_sleep_t
         @wraps(func)
         def inner(self, *args, time_to_start: str, was_error: bool = False, recs: list[str] = []):
             t = start_sleep_time
-            n = 0
             storage = state.JsonFileStorage(file_path='current_state.json')
             cur_state = state.State(storage)
             while True:
                 if t < border_sleep_time:
-                    t *= factor ** n
+                    t *= factor
                 else:
                     t = border_sleep_time
                 value = func(self, *args, time_to_start=time_to_start, was_error=was_error, recs=recs)
                 if 'error' in value:
                     time.sleep(t)
-                    n += 1
                     recs = value[1]
                     time_to_start = value[2]
                     cur_state.set_state('last_date', time_to_start)
