@@ -36,6 +36,7 @@ def reset_redis(redis_client_conn):
 def http_request():
     async def inner(query_data, url_path):
         session = aiohttp.ClientSession()
+        x=test_settings_movies.service_url
         url = test_settings_movies.service_url + url_path
         async with session.get(url, params=query_data) as response:
             body = await response.json()
