@@ -69,6 +69,7 @@ async def gen_doc_films(titles_movies: list[str], persons: list[PersonForIndex])
         film = Film(
             id=str(uuid.uuid4()),
             title=movie,
+            imdb_rating=random.uniform(1, 10),
             description=''.join(random.choices(string.ascii_letters, k=20)),
             creation_date=datetime.now().strftime('%Y-%m-%d'),
             genre=await generate_genre(3),
@@ -87,11 +88,8 @@ async def gen_doc_persons(persons: list[PersonForIndex]):
         documents.append({'index': {'_index': test_settings_person.es_index, '_id': pers.uuid}})
         documents.append(pers.dict())
     return documents
-    # return inner
 
 
-# 1) Нужно сделать универсальный метод, который принимает структуру {names: ["name_person1", "name_person2"...], movies: ["film1", "film2"...]}
-# 2) Метод возвращает словарь {persons_data: [данные для персон], movies_data: [данные для фильмов]}
 @pytest.fixture
 def gen_data_person_tests():
     async def inner(data: dict):
