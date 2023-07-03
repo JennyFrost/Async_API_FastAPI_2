@@ -30,3 +30,9 @@ services:
        - ./.env.sample
      ports:
      - 8000:8000
+
+  test_api:
+    build: ./tests/functional
+    container_name: test_api
+    env_file:
+      - ./.env.test

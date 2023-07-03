@@ -15,6 +15,11 @@ class TestSettings(BaseSettings):
     redis_host: str = Field(default='', env='REDIS_HOST')
     redis_port: str = Field(default='', env='REDIS_PORT')
     service_url: str = Field(default='', env='SERVICE_URL')
+    service_port: str = Field(default='', env='SERVICE_URL_PORT')
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.service_url = f'http://{self.service_url}:{self.service_port}'
  
 
 test_settings_person = TestSettings(
