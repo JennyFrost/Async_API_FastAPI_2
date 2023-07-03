@@ -14,3 +14,5 @@ RUN  pip install --upgrade pip \
     && pip install -r requirements.txt
 
 COPY . .
+
+CMD python3 utils/wait_for_es.py && python3 utils/wait_for_redis.py && pytest src/test_films
