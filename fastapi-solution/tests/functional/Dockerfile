@@ -15,4 +15,4 @@ RUN  pip install --upgrade pip \
 
 COPY . .
 
-CMD pytest
+CMD pytest src/test_films

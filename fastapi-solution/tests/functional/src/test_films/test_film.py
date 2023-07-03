@@ -181,6 +181,7 @@ async def test_detail_film(
     assert response['status'] == output_data['status']
     if output_data['check_valid']:
         film = response['body']
+        print(film)
         try:
             FilmRequest(**film)
         except pydantic.error_wrappers.ValidationError as error:
