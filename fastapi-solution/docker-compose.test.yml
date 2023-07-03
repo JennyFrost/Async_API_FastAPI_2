@@ -36,3 +36,5 @@ services:
     container_name: test_api
     env_file:
       - ./.env.test
+    restart: "no"
+    rm: "true"
