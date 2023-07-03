@@ -157,11 +157,11 @@ async def test_validate_data(es_write_data, generate_films, http_request):
     [
         (
             {'film_id': 'e4e97d90-ac31-46bd-bed3-43bc58b75961'},
-            {'find_id': 'e4e97d90-ac31-46bd-bed3-43bc58b75961', 'status': 200, 'check_valid': True}
+            {'find_id': 'e4e97d90-ac31-46bd-bed3-43bc58b75961', 'status': 200}
         ),
         (
             {'film_id': 'e4e97d90-ac31-46bd-bed3-43bc58b75961'},
-            {'find_id': 'e7e97d90-ac31-46bd-bed3-43bc58b76745', 'status': 404, 'check_valid': False}
+            {'find_id': 'e7e97d90-ac31-46bd-bed3-43bc58b76745', 'status': 404}
         )
     ]
 )
@@ -179,12 +179,3 @@ async def test_detail_film(
     await asyncio.sleep(1)
     response = await http_request({}, f'/api/v1/films/{output_data["find_id"]}')
     assert response['status'] == output_data['status']
-    if output_data['check_valid']:
-        film = response['body']
-        print(film)
-        try:
-            FilmRequest(**film)
-        except pydantic.error_wrappers.ValidationError as error:
-            raise ValueError(f"Ошибка валидации фильма: {error}")
-        else:
-            assert True
