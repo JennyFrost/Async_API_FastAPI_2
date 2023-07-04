@@ -59,7 +59,7 @@ async def film_details(film_id: str, film_service: FilmService = Depends(get_fil
 @router.get('/', response_model=PageAnswer)
 async def all_films(page_number: Annotated[int, Query(description='Pagination page number', ge=1)] = 1,
                      page_size: Annotated[int, Query(description='Pagination page size', ge=1)] = PAGE_SIZE,
-                    sort: str = SORT_FIELD,
+                    sort: Annotated[str, Query(regex="^[-]?imdb_rating$")] = SORT_FIELD,
                     genre: str = None, film_service: FilmService= Depends(get_film_service)) -> PageAnswer:
     """
     Метод возвращает список фильмов
