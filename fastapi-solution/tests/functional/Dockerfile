@@ -15,4 +15,4 @@ RUN  pip install --upgrade pip \
 
 COPY . .
 
-CMD python3 utils/wait_for_es.py && python3 utils/wait_for_redis.py && pytest src/test_films
+CMD python3 utils/wait_for_es.py && python3 utils/wait_for_redis.py && pytest
