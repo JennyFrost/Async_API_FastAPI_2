@@ -60,6 +60,10 @@ async def test_search(
         (
                 {'sort': 'imdb_rating'},
                 {'status': 200}
+        ),
+        (
+                {'sort': 'im_rating'},
+                {'status': 422}
         )
     ]
 )
@@ -75,23 +79,25 @@ async def test_all_films_sort(
     await asyncio.sleep(1)
     response = await http_request(query_data, '/api/v1/films')
     assert response['status'] == expected_answer['status']
-    first_rating = response['body']['result'][0]['imdb_rating']
-    last_rating = response['body']['result'][-1]['imdb_rating']
-    if query_data['sort'].startswith('-'):
-        assert first_rating > last_rating
-    else:
-        assert first_rating < last_rating
+    if response['status'] == 200:
+        first_rating = response['body']['result'][0]['imdb_rating']
+        last_rating = response['body']['result'][-1]['imdb_rating']
+        if query_data['sort'].startswith('-'):
+            assert first_rating > last_rating
+        else:
+            assert first_rating < last_rating
 
     await es_delete_index_film(test_settings_movies.es_index)
 
     response = await http_request(query_data, '/api/v1/films')
     assert response['status'] == expected_answer['status']
-    first_rating = response['body']['result'][0]['imdb_rating']
-    last_rating = response['body']['result'][-1]['imdb_rating']
-    if query_data['sort'].startswith('-'):
-        assert first_rating > last_rating
-    else:
-        assert first_rating < last_rating
+    if response['status'] == 200:
+        first_rating = response['body']['result'][0]['imdb_rating']
+        last_rating = response['body']['result'][-1]['imdb_rating']
+        if query_data['sort'].startswith('-'):
+            assert first_rating > last_rating
+        else:
+            assert first_rating < last_rating
 
     await reset_redis()
 
