@@ -18,12 +18,11 @@ class FilmService(CacheMixin):
 
     async def get_by_id(self, film_id: str) -> Film | None:
         film = await self.redis_conn.get_by_id(obj_id=film_id, some_class=FilmBase)
-        # film = await self._object_from_cache(film_id)
         if not film:
             film = await self.db.get_by_id(film_id, "movies", Film)
             if not film:
                 return None
-            await self._put_object_to_cache(film, film_id)
+            await self.redis_conn.create(obj=film, some_id=film_id)
         return film
     
     async def get_films_query(self, page: int, page_size: int, query: str) -> list[FilmBase]:
@@ -34,7 +33,7 @@ class FilmService(CacheMixin):
             films = await self.db.get_queryset(index='movies', some_class=FilmBase)
             if not films:
                 return []
-            await self._put_objects_to_cache(films, key_for_cache)
+            await self.redis_conn.create(obj=films, some_id=key_for_cache, many=True)
         return films
     
     async def get_films_page(self, page: int, size: int, sort_field: str, genre: str):
@@ -51,7 +50,7 @@ class FilmService(CacheMixin):
             page_films = await self.db.get_queryset(index='movies', some_class=FilmBase)
             if not page_films:
                 return []
-            await self._put_objects_to_cache(page_films, key_for_cache)
+            await self.redis_conn.create(obj=page_films, some_id=key_for_cache, many=True)
         return page_films
 
     async def get_person_films(
@@ -64,21 +63,10 @@ class FilmService(CacheMixin):
             self.db.get_all().paginate(page=page_number, page_size=page_size).filter(dict_filter={"actors": person_id, "director": person_id, "writers": person_id}).sort(
                 sort_field=sort_field)
             person_films = await self.db.get_queryset(index='movies', some_class=FilmBase)
-            await self._put_objects_to_cache(
-                person_films,
-                f'person_films_page_{page_number}_size_{page_size}_' + person_id)
+            await self.redis_conn.create(
+                obj=person_films,
+                some_id=f'person_films_page_{page_number}_size_{page_size}_' + person_id, many=True)
         return person_films
-
-    async def _object_from_cache(self, some_id: str) -> FilmBase | None:
-        obj = await super()._object_from_cache(some_id)
-        if obj:
-            film = FilmBase.parse_raw(obj)
-            return film
-    
-    async def _objects_from_cache(self, some_id: str) -> list[FilmBase]:
-        objects = await super()._objects_from_cache(some_id)
-        films = [FilmBase.parse_raw(obj) for obj in objects]
-        return films
 
 
 @lru_cache()
