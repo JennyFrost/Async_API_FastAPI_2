@@ -29,10 +29,13 @@ async def test_all_genres(
     await es_write_data(data=es_data, index_name=test_settings_genre.es_index,
                         index_mapping=test_settings_genre.es_index_mapping)
     await asyncio.sleep(1)
+
     response = await http_request(query_data, '/api/v1/genres')
     assert response['status'] == expected_answer['status']
     assert len(response['body']) == expected_answer['length']
+
     await es_delete_index_film(test_settings_genre.es_index)
+
     response = await http_request(query_data, '/api/v1/genres')
     assert response['status'] == expected_answer['status']
     assert len(response['body']) == expected_answer['length']
@@ -59,13 +62,16 @@ async def test_genres_by_id(
     await es_write_data(data=es_data, index_name=test_settings_genre.es_index,
                         index_mapping=test_settings_genre.es_index_mapping)
     await asyncio.sleep(1)
+
     genre_id = query_data['genre_id']
     response = await http_request(query_data, f'/api/v1/genres/{genre_id}')
     assert response['status'] == expected_answer['status']
     genre_num = int(genre_id[0])
     genre = response['body']
     assert genre['name'] == genres[genre_num]
+
     await es_delete_index_film(test_settings_genre.es_index)
+
     response = await http_request(query_data, f'/api/v1/genres/{genre_id}')
     assert response['status'] == expected_answer['status']
 
@@ -109,4 +115,4 @@ async def test_validate_data(es_write_data, generate_genres, http_request):
         raise ValueError(f"Ошибка валидации фильма: {error}")
     else:
         assert True
-
+        
