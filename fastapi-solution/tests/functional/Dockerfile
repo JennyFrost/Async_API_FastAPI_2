@@ -15,4 +15,6 @@ RUN  pip install --upgrade pip \
 
 COPY . .
 
-CMD python3 utils/wait_for_es.py && python3 utils/wait_for_redis.py && pytest
+RUN chmod +x utils/run_tests.sh
+
+CMD ["utils/run_tests.sh"]
