@@ -35,7 +35,7 @@ class AsyncDBEngine(ABC):
         pass
 
 
-class ElasticMain:
+class ElasticMain(AsyncDBEngine):
     def __init__(self, elastic: AsyncElasticsearch):
         self.elastic = elastic
         self.search_body = {}

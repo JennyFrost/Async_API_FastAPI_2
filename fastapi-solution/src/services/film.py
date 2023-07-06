@@ -29,9 +29,6 @@ class FilmService(CacheMixin):
         key_for_cache = f"films_page_{page}_size_{page_size}_query_{query}"
         films = await self._objects_from_cache(key_for_cache)
         if not films:
-            # films = await self.db.get_objects_query_from_elastic(
-            #     query=query, query_field='title', page=page, page_size=page_size, some_class=FilmBase, index='movies'
-            # )
             self.db.search(query=query, query_field='title').paginate(page=page, page_size=page_size)
             films = await self.db.get_queryset(index='movies', some_class=FilmBase)
             if not films:
@@ -49,12 +46,6 @@ class FilmService(CacheMixin):
             dict_filter = None
             if genre:
                 dict_filter = {'genre': genre}
-            # page_films = await self.db.get_objects_from_elastic(
-            #     page=page, page_size=size,
-            #     index='movies', some_class=FilmBase,
-            #     dict_filter=dict_filter,
-            #     sort_field=sort_field,
-            #     )
             self.db.get_all().paginate(page=page, page_size=size).filter(dict_filter=dict_filter).sort(sort_field=sort_field)
             page_films = await self.db.get_queryset(index='movies', some_class=FilmBase)
             if not page_films:
@@ -71,11 +62,6 @@ class FilmService(CacheMixin):
             f'person_films_page_{page_number}_size_{page_size}_' + person_id
         )
         if not person_films:
-            # person_films = await self.db.get_objects_from_elastic(
-            #     page=page_number, page_size=page_size,
-            #     index='movies', some_class=FilmBase,
-            #     dict_filter={"actors": person_id, "director": person_id, "writers": person_id},
-            #     sort_field=sort_field)
             self.db.get_all().paginate(page=page_number, page_size=page_size).filter(dict_filter={"actors": person_id, "director": person_id, "writers": person_id}).sort(
                 sort_field=sort_field)
             person_films = await self.db.get_queryset(index='movies', some_class=FilmBase)
