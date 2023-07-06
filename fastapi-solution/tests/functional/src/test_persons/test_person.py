@@ -33,10 +33,14 @@ from ...settings import test_settings_movies, test_settings_person
 @pytest.mark.anyio
 async def test_search_persons(data_for_write, query_data, expected_answer, es_write_data, http_request, es_delete_index_film, gen_data_person_tests, reset_redis): 
     data: dict = await gen_data_person_tests(data_for_write)
+
     await es_write_data(data=data.get("movies"), index_name=test_settings_movies.es_index, index_mapping=test_settings_movies.es_index_mapping)
     await es_write_data(data=data.get("persons"), index_name=test_settings_person.es_index, index_mapping=test_settings_person.es_index_mapping)
+    
     await asyncio.sleep(1)
+    
     response = await http_request(query_data, '/api/v1/persons/search')
+
     await es_delete_index_film(index_name=test_settings_movies.es_index)
     await es_delete_index_film(index_name=test_settings_person.es_index)
 
@@ -44,6 +48,7 @@ async def test_search_persons(data_for_write, query_data, expected_answer, es_wr
     assert response['body'][0]['full_name'] == expected_answer["person"]
 
     response = await http_request(query_data, '/api/v1/persons/search')
+
     assert response['status'] == expected_answer['status']
     assert response['body'][0]['full_name'] == expected_answer["person"]
 
@@ -66,10 +71,14 @@ async def test_search_persons(data_for_write, query_data, expected_answer, es_wr
 @pytest.mark.anyio
 async def test_validation_person(data_for_write, query_data, es_write_data, http_request, es_delete_index_film, gen_data_person_tests, reset_redis): 
     data: dict = await gen_data_person_tests(data_for_write)
+    
     await es_write_data(data=data.get("movies"), index_name=test_settings_movies.es_index, index_mapping=test_settings_movies.es_index_mapping)
     await es_write_data(data=data.get("persons"), index_name=test_settings_person.es_index, index_mapping=test_settings_person.es_index_mapping)
+    
     await asyncio.sleep(1)
+
     response = await http_request(query_data, '/api/v1/persons/search')
+
     try:
         ResponsePerson.parse_obj(response['body'][0])
         assert True
@@ -97,12 +106,17 @@ async def test_validation_person(data_for_write, query_data, es_write_data, http
 @pytest.mark.anyio
 async def test_validation_person_film(data_for_write, query_data, es_write_data, http_request, es_delete_index_film, gen_data_person_tests, reset_redis): 
     data: dict = await gen_data_person_tests(data_for_write)
+
     await es_write_data(data=data.get("movies"), index_name=test_settings_movies.es_index, index_mapping=test_settings_movies.es_index_mapping)
     await es_write_data(data=data.get("persons"), index_name=test_settings_person.es_index, index_mapping=test_settings_person.es_index_mapping)
+    
     uuid_person = data['persons_'][query_data['query']]
     modify_query = {'query': uuid_person}
+    
     await asyncio.sleep(1)
+
     response = await http_request(modify_query, '/api/v1/persons/{}/films'.format(uuid_person))
+
     _ = [ResponsePersonFilm.parse_obj(film) for film in response['body']]
     try:
         _ = [ResponsePersonFilm.parse_obj(film) for film in response['body']]
@@ -138,19 +152,26 @@ async def test_validation_person_film(data_for_write, query_data, es_write_data,
 @pytest.mark.anyio
 async def test_person_id(data_for_write, query_data, expected_answer, es_write_data, http_request, es_delete_index_film, gen_data_person_tests, reset_redis): 
     data: dict = await gen_data_person_tests(data_for_write)
+
     await es_write_data(data=data.get("movies"), index_name=test_settings_movies.es_index, index_mapping=test_settings_movies.es_index_mapping)
     await es_write_data(data=data.get("persons"), index_name=test_settings_person.es_index, index_mapping=test_settings_person.es_index_mapping)
+    
     uuid_person = data['persons_'][query_data['query']]
     modify_query = {'query': uuid_person}
+    
     await asyncio.sleep(1)
+    
     response = await http_request(modify_query, '/api/v1/persons/{}'.format(uuid_person))
+    
     assert response['status'] == expected_answer['status']
     assert response['body']['uuid'] == uuid_person
     assert response['body']['full_name'] == query_data['query']
+    
     await es_delete_index_film(index_name=test_settings_movies.es_index)
     await es_delete_index_film(index_name=test_settings_person.es_index)
 
     response = await http_request(modify_query, '/api/v1/persons/{}'.format(uuid_person))
+    
     assert response['status'] == expected_answer['status']
     assert response['body']['uuid'] == uuid_person
     assert response['body']['full_name'] == query_data['query']
@@ -181,12 +202,17 @@ async def test_person_id(data_for_write, query_data, expected_answer, es_write_d
 @pytest.mark.anyio
 async def test_person_films(data_for_write, query_data, expected_answer, es_write_data, http_request, es_delete_index_film, gen_data_person_tests, reset_redis): 
     data: dict = await gen_data_person_tests(data_for_write)
+
     await es_write_data(data=data.get("movies"), index_name=test_settings_movies.es_index, index_mapping=test_settings_movies.es_index_mapping)
     await es_write_data(data=data.get("persons"), index_name=test_settings_person.es_index, index_mapping=test_settings_person.es_index_mapping)
+    
     uuid_person = data['persons_'][query_data['query']]
     modify_query = {'query': uuid_person}
+    
     await asyncio.sleep(1)
+    
     response = await http_request(modify_query, '/api/v1/persons/{}/films'.format(uuid_person))
+    
     assert response['status'] == expected_answer['status']
     assert sorted([film['title'] for film in response['body']]) == sorted(data_for_write['movies'])
 
@@ -194,6 +220,7 @@ async def test_person_films(data_for_write, query_data, expected_answer, es_writ
     await es_delete_index_film(index_name=test_settings_person.es_index)
 
     response = await http_request(modify_query, '/api/v1/persons/{}/films'.format(uuid_person))
+    
     assert response['status'] == expected_answer['status']
     assert sorted([film['title'] for film in response['body']]) == sorted(data_for_write['movies'])
 

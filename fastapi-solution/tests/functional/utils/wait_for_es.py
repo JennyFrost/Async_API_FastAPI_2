@@ -8,9 +8,17 @@ load_dotenv()
 
 host=os.getenv('ELASTIC_HOST')
 port=os.getenv('ELASTIC_PORT')
+wait_time=os.getenv("WAIT_TIME", 20)
 
-while True:
+counter = 1
+while counter < wait_time:
     es_client = Elasticsearch(hosts=f"http://{host}:{port}")
     if es_client.ping():
         break
-    time.sleep(1)
+    time.sleep(counter)
+    counter += 1
+
+if counter >= wait_time:
+    print("False")
+else:
+    print("True")
