@@ -133,6 +133,14 @@ class RedisMain(AsyncDBById):
             return [some_class.parse_raw(obj) for obj in json.loads(data)]
         else:
             return some_class.parse_raw(data)
+        
+    async def create(self, some_id: str, obj: BaseModel | list[BaseModel], many: bool=False, time_cache: int = 30):
+        if many and isinstance(obj, list):
+            obj = [item.json() for item in obj]
+            objects = json.dumps(obj)
+            await self.redis.set(some_id, objects, time_cache)
+            return
+        await self.redis.set(some_id, obj.json(), time_cache)
 
 
 class Paginator(BaseModel):
