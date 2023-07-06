@@ -65,6 +65,7 @@ async def test_genres_by_id(
 
     genre_id = query_data['genre_id']
     response = await http_request(query_data, f'/api/v1/genres/{genre_id}')
+
     assert response['status'] == expected_answer['status']
     genre_num = int(genre_id[0])
     genre = response['body']
@@ -94,6 +95,7 @@ async def test_genres_by_wrong_id(
     await es_write_data(data=es_data, index_name=test_settings_genre.es_index,
                         index_mapping=test_settings_genre.es_index_mapping)
     await asyncio.sleep(1)
+
     genre_id = query_data['genre_id']
     response = await http_request(query_data, f'/api/v1/genres/{genre_id}')
     assert response['status'] == expected_answer['status']
@@ -106,13 +108,14 @@ async def test_validate_data(es_write_data, generate_genres, http_request):
     await es_write_data(data=es_data, index_name=test_settings_genre.es_index,
                         index_mapping=test_settings_genre.es_index_mapping)
     await asyncio.sleep(1)
+
     response = await http_request({}, '/api/v1/genres')
     assert response['status'] == HTTPStatus.OK
     genre = response['body'][0]
+
     try:
         GenreRequest(**genre)
     except error_wrappers.ValidationError as error:
         raise ValueError(f"Ошибка валидации фильма: {error}")
     else:
         assert True
-        
