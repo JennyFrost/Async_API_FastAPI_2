@@ -8,7 +8,7 @@ from db.elastic import get_elastic
 from db.redis import get_redis
 from models.person import Role, Person, PersonFilm
 from services.redis_mixins import CacheMixin
-from services.elastic_class import ElasticMain
+from services.elastic_class import ElasticMain, RedisMain
 
 PERSON_CACHE_EXPIRE_IN_SECONDS = 60 * 2
 
@@ -18,7 +18,7 @@ class PersonService(CacheMixin):
     async def search_person(
             self, search_text: str,
             page: int, page_size: int) -> list[Person]:
-        persons = await self._objects_from_cache('search_person_' + search_text)
+        persons = await self.redis_conn.get_by_id(obj_id='search_person_' + search_text, some_class=Person, many=True)
         if not persons:
             # persons = await self.db.get_objects_query_from_elastic(
             #     query=search_text, query_field='full_name', page=page, page_size=page_size, some_class=Person, index='persons'
@@ -36,7 +36,7 @@ class PersonService(CacheMixin):
         return persons
 
     async def get_by_id(self, person_id: str) -> Person | None:
-        person = await self._object_from_cache(person_id)
+        person = await self.redis_conn.get_by_id(obj_id=person_id, some_class=Person)
         if not person:
             person = await self.db.get_by_id(person_id, "persons", Person)
             if not person:
@@ -84,5 +84,5 @@ def get_person_service(
 ) -> PersonService:
     
     db: ElasticMain = ElasticMain(elastic)
-
-    return PersonService(redis, elastic, db)
+    redis_conn: Redis = RedisMain(redis)
+    return PersonService(redis, elastic, db, redis_conn)

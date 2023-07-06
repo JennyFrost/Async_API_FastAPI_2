@@ -1,21 +1,27 @@
 import re
+import json
 from abc import ABC, abstractmethod
 
+from redis.asyncio import Redis
 from elasticsearch import AsyncElasticsearch, NotFoundError, exceptions
 from pydantic import BaseModel
 
 
-class AsyncDBEngine(ABC):
+class AsyncDBById(ABC):
+
     @abstractmethod
     async def get_by_id(self, obj_id: str, index: str, some_class) -> BaseModel | None:
         pass
+
+
+class AsyncDBEngine(ABC):
 
     @abstractmethod
     async def get_queryset(self, index, some_class):
         pass
 
     @abstractmethod
-    def filter(self):
+    def filter(self, dict_filter):
         pass
 
     @abstractmethod
@@ -23,7 +29,7 @@ class AsyncDBEngine(ABC):
         pass
 
     @abstractmethod
-    def all(self):
+    def get_all(self):
         pass
 
     @abstractmethod
@@ -35,7 +41,7 @@ class AsyncDBEngine(ABC):
         pass
 
 
-class ElasticMain(AsyncDBEngine):
+class ElasticMain(AsyncDBById, AsyncDBEngine):
     def __init__(self, elastic: AsyncElasticsearch):
         self.elastic = elastic
         self.search_body = {}
@@ -113,6 +119,20 @@ class ElasticMain(AsyncDBEngine):
                 "should": should
             }
         }
+
+
+class RedisMain(AsyncDBById):
+    def __init__(self, redis: Redis):
+        self.redis = redis
+
+    async def get_by_id(self, obj_id: str, some_class, many=False) -> BaseModel | list[BaseModel] | None:
+        data = await self.redis.get(obj_id)
+        if not data:
+            return [] if many else None
+        if many:
+            return [some_class.parse_raw(obj) for obj in json.loads(data)]
+        else:
+            return some_class.parse_raw(data)
 
 
 class Paginator(BaseModel):

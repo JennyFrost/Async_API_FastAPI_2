@@ -7,7 +7,7 @@ from redis.asyncio import Redis
 from db.elastic import get_elastic
 from db.redis import get_redis
 from models.genre import Genre
-from services.elastic_class import ElasticMain
+from services.elastic_class import ElasticMain, RedisMain
 
 from services.redis_mixins import CacheMixin
 
@@ -17,7 +17,7 @@ GENRES_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 class GenreService(CacheMixin):
 
     async def get_by_id(self, genre_id: str) -> Genre | None:
-        genre = await self._object_from_cache(genre_id)
+        genre = await self.redis_conn.get_by_id(obj_id=genre_id, some_class=Genre)
         if not genre:
             genre = await self.db.get_by_id(obj_id=genre_id, index="genres", some_class=Genre)
             if not genre:
@@ -27,7 +27,7 @@ class GenreService(CacheMixin):
         return genre
 
     async def get_genres_list(self, page: int, page_size: int) -> list[Genre]:
-        genres = await self._objects_from_cache(f'all_genres_page_{page}_size_{page_size}')
+        genres = await self.redis_conn.get_by_id(obj_id=f'all_genres_page_{page}_size_{page_size}', some_class=Genre, many=True)
         if not genres:
             # genres = await self.db.get_objects_from_elastic(
             #     page=page, page_size=page_size,
@@ -58,5 +58,5 @@ def get_genres_service(
 ) -> GenreService:
     
     db: ElasticMain = ElasticMain(elastic)
-
-    return GenreService(redis, elastic, db)
+    redis_conn: Redis = RedisMain(redis)
+    return GenreService(redis, elastic, db, redis_conn)

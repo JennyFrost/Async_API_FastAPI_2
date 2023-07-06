@@ -7,10 +7,11 @@ from services.elastic_class import ElasticMain
 
 class MainServiceMixin:
 
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch, db: ElasticMain):
+    def __init__(self, redis: Redis, elastic: AsyncElasticsearch, db: ElasticMain, redis_conn):
         self.redis = redis
         self.elastic = elastic
         self.db = db
+        self.redis_conn = redis_conn
 
 
 class CacheMixin(MainServiceMixin):

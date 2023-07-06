@@ -9,7 +9,7 @@ from db.redis import get_redis
 
 from models.film import Film, FilmBase
 from services.redis_mixins import CacheMixin
-from services.elastic_class import ElasticMain
+from services.elastic_class import ElasticMain, RedisMain
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 
@@ -17,7 +17,8 @@ FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 class FilmService(CacheMixin):
 
     async def get_by_id(self, film_id: str) -> Film | None:
-        film = await self._object_from_cache(film_id)
+        film = await self.redis_conn.get_by_id(obj_id=film_id, some_class=FilmBase)
+        # film = await self._object_from_cache(film_id)
         if not film:
             film = await self.db.get_by_id(film_id, "movies", Film)
             if not film:
@@ -27,7 +28,7 @@ class FilmService(CacheMixin):
     
     async def get_films_query(self, page: int, page_size: int, query: str) -> list[FilmBase]:
         key_for_cache = f"films_page_{page}_size_{page_size}_query_{query}"
-        films = await self._objects_from_cache(key_for_cache)
+        films = await self.redis_conn.get_by_id(obj_id=key_for_cache, some_class=FilmBase, many=True)
         if not films:
             self.db.search(query=query, query_field='title').paginate(page=page, page_size=page_size)
             films = await self.db.get_queryset(index='movies', some_class=FilmBase)
@@ -41,7 +42,7 @@ class FilmService(CacheMixin):
         Метод возвращает запрошенную страницу с фильмами, определенного размера
         """
         key_for_cache = f"films_page_{page}_size_{size}_sort_{sort_field}_genre_{genre}"
-        page_films = await self._objects_from_cache(key_for_cache)
+        page_films = await self.redis_conn.get_by_id(obj_id=key_for_cache, some_class=FilmBase, many=True)
         if not page_films:
             dict_filter = None
             if genre:
@@ -58,9 +59,7 @@ class FilmService(CacheMixin):
             page_size: int,
             page_number: int,
             sort_field: str) -> list[FilmBase]:
-        person_films = await self._objects_from_cache(
-            f'person_films_page_{page_number}_size_{page_size}_' + person_id
-        )
+        person_films = await self.redis_conn.get_by_id(obj_id=f'person_films_page_{page_number}_size_{page_size}_' + person_id, some_class=FilmBase, many=True)
         if not person_films:
             self.db.get_all().paginate(page=page_number, page_size=page_size).filter(dict_filter={"actors": person_id, "director": person_id, "writers": person_id}).sort(
                 sort_field=sort_field)
@@ -89,4 +88,5 @@ def get_film_service(
 ) -> FilmService:
     
     db: ElasticMain = ElasticMain(elastic)
-    return FilmService(redis, elastic, db)
+    redis_conn: Redis = RedisMain(redis)
+    return FilmService(redis, elastic, db, redis_conn)

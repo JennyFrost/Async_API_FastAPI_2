@@ -192,7 +192,7 @@ async def test_validate_data(es_write_data, generate_films, http_request):
         ),
         (
             {'film_id': 'e4e97d90-ac31-46bd-bed3-43bc58b75961'},
-            {'find_id': 'e7e97d90-ac31-46bd-bed3-43bc58b76745', 'status': HTTPStatus.OK}
+            {'find_id': 'e7e97d90-ac31-46bd-bed3-43bc58b76745', 'status': HTTPStatus.NOT_FOUND}
         )
     ]
 )
