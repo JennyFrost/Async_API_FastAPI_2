@@ -19,7 +19,7 @@ class FilmService(CacheMixin):
     async def get_by_id(self, film_id: str) -> Film | None:
         film = await self._object_from_cache(film_id)
         if not film:
-            film = await self.elastic_main.get_obj_from_elastic(film_id, "movies", Film)
+            film = await self.db.get_by_id(film_id, "movies", Film)
             if not film:
                 return None
             await self._put_object_to_cache(film, film_id)
@@ -29,9 +29,11 @@ class FilmService(CacheMixin):
         key_for_cache = f"films_page_{page}_size_{page_size}_query_{query}"
         films = await self._objects_from_cache(key_for_cache)
         if not films:
-            films = await self.elastic_main.get_objects_query_from_elastic(
-                query=query, query_field='title', page=page, page_size=page_size, some_class=FilmBase, index='movies'
-            )
+            # films = await self.db.get_objects_query_from_elastic(
+            #     query=query, query_field='title', page=page, page_size=page_size, some_class=FilmBase, index='movies'
+            # )
+            self.db.search(query=query, query_field='title').paginate(page=page, page_size=page_size)
+            films = await self.db.get_queryset(index='movies', some_class=FilmBase)
             if not films:
                 return []
             await self._put_objects_to_cache(films, key_for_cache)
@@ -47,12 +49,14 @@ class FilmService(CacheMixin):
             dict_filter = None
             if genre:
                 dict_filter = {'genre': genre}
-            page_films = await self.elastic_main.get_objects_from_elastic(
-                page=page, page_size=size,
-                index='movies', some_class=FilmBase,
-                dict_filter=dict_filter,
-                sort_field=sort_field,
-                )
+            # page_films = await self.db.get_objects_from_elastic(
+            #     page=page, page_size=size,
+            #     index='movies', some_class=FilmBase,
+            #     dict_filter=dict_filter,
+            #     sort_field=sort_field,
+            #     )
+            self.db.get_all().paginate(page=page, page_size=size).filter(dict_filter=dict_filter).sort(sort_field=sort_field)
+            page_films = await self.db.get_queryset(index='movies', some_class=FilmBase)
             if not page_films:
                 return []
             await self._put_objects_to_cache(page_films, key_for_cache)
@@ -67,11 +71,14 @@ class FilmService(CacheMixin):
             f'person_films_page_{page_number}_size_{page_size}_' + person_id
         )
         if not person_films:
-            person_films = await self.elastic_main.get_objects_from_elastic(
-                page=page_number, page_size=page_size,
-                index='movies', some_class=FilmBase,
-                dict_filter={"actors": person_id, "director": person_id, "writers": person_id},
+            # person_films = await self.db.get_objects_from_elastic(
+            #     page=page_number, page_size=page_size,
+            #     index='movies', some_class=FilmBase,
+            #     dict_filter={"actors": person_id, "director": person_id, "writers": person_id},
+            #     sort_field=sort_field)
+            self.db.get_all().paginate(page=page_number, page_size=page_size).filter(dict_filter={"actors": person_id, "director": person_id, "writers": person_id}).sort(
                 sort_field=sort_field)
+            person_films = await self.db.get_queryset(index='movies', some_class=FilmBase)
             await self._put_objects_to_cache(
                 person_films,
                 f'person_films_page_{page_number}_size_{page_size}_' + person_id)
@@ -95,5 +102,5 @@ def get_film_service(
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> FilmService:
     
-    elastic_main: ElasticMain = ElasticMain(elastic)
-    return FilmService(redis, elastic, elastic_main)
+    db: ElasticMain = ElasticMain(elastic)
+    return FilmService(redis, elastic, db)

@@ -7,10 +7,10 @@ from services.elastic_class import ElasticMain
 
 class MainServiceMixin:
 
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch, elastic_main: ElasticMain):
+    def __init__(self, redis: Redis, elastic: AsyncElasticsearch, db: ElasticMain):
         self.redis = redis
         self.elastic = elastic
-        self.elastic_main = elastic_main
+        self.db = db
 
 
 class CacheMixin(MainServiceMixin):
@@ -32,6 +32,9 @@ class CacheMixin(MainServiceMixin):
         await self.redis.set(some_id, obj.json(), time_cache)
 
     async def _put_objects_to_cache(self, objects: list[BaseModel], some_id: str, time_cache: int = 60):
+        print('-----------------------------------------------------')
+        print(type(objects))
+        print(objects)
         objects = [obj.json() for obj in objects]
         objects = json.dumps(objects)
         await self.redis.set(some_id, objects, time_cache)

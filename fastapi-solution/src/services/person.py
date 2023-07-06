@@ -20,9 +20,11 @@ class PersonService(CacheMixin):
             page: int, page_size: int) -> list[Person]:
         persons = await self._objects_from_cache('search_person_' + search_text)
         if not persons:
-            persons = await self.elastic_main.get_objects_query_from_elastic(
-                query=search_text, query_field='full_name', page=page, page_size=page_size, some_class=Person, index='persons'
-            )
+            # persons = await self.db.get_objects_query_from_elastic(
+            #     query=search_text, query_field='full_name', page=page, page_size=page_size, some_class=Person, index='persons'
+            # )
+            self.db.search(query=search_text, query_field='full_name').paginate(page=page, page_size=page_size)
+            persons = await self.db.get_queryset(index='persons', some_class=Person)
             result = []
             for person in persons:
                 person = await self._get_person_roles_from_elastic(person)
@@ -36,7 +38,7 @@ class PersonService(CacheMixin):
     async def get_by_id(self, person_id: str) -> Person | None:
         person = await self._object_from_cache(person_id)
         if not person:
-            person = await self.elastic_main.get_obj_from_elastic(person_id, "persons", Person)
+            person = await self.db.get_by_id(person_id, "persons", Person)
             if not person:
                 return None
             person = await self._get_person_roles_from_elastic(person)
@@ -44,10 +46,12 @@ class PersonService(CacheMixin):
         return person
 
     async def _get_person_roles_from_elastic(self, person: Person) -> Person | None:
-        films = await self.elastic_main.inner_objects_elastic(
-            source_field='id',
-            dict_filter={"actors": person.uuid, "director": person.uuid, "writers": person.uuid},
-            index='movies')
+        # films = await self.db.inner_objects_elastic(
+        #     source_field='id',
+        #     dict_filter={"actors": person.uuid, "director": person.uuid, "writers": person.uuid},
+        #     index='movies')
+        self.db.filter({"actors": person.uuid, "director": person.uuid, "writers": person.uuid}).inner_objects(source_field='id')
+        films = await self.db.get_queryset(index='movies')
 
         for film in films['hits']['hits']:
             film_id = film['_source']['id']
@@ -79,6 +83,6 @@ def get_person_service(
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> PersonService:
     
-    elastic_main: ElasticMain = ElasticMain(elastic)
+    db: ElasticMain = ElasticMain(elastic)
 
-    return PersonService(redis, elastic, elastic_main)
+    return PersonService(redis, elastic, db)
