@@ -19,7 +19,7 @@ class GenreService(CacheMixin):
     async def get_by_id(self, genre_id: str) -> Genre | None:
         genre = await self._object_from_cache(genre_id)
         if not genre:
-            genre = await self.elastic_main.get_by_id(obj_id=genre_id, index="genres", some_class=Genre)
+            genre = await self.db.get_by_id(obj_id=genre_id, index="genres", some_class=Genre)
             if not genre:
                 return None
             await self._put_object_to_cache(genre, genre_id)
@@ -29,11 +29,11 @@ class GenreService(CacheMixin):
     async def get_genres_list(self, page: int, page_size: int) -> list[Genre]:
         genres = await self._objects_from_cache(f'all_genres_page_{page}_size_{page_size}')
         if not genres:
-            # genres = await self.elastic_main.get_objects_from_elastic(
+            # genres = await self.db.get_objects_from_elastic(
             #     page=page, page_size=page_size,
             #     index='genres', some_class=Genre)
-            self.elastic_main.get_all().paginate(page=page, page_size=page_size)
-            genres = await self.elastic_main.get_queryset(index='genres', some_class=Genre)
+            self.db.get_all().paginate(page=page, page_size=page_size)
+            genres = await self.db.get_queryset(index='genres', some_class=Genre)
             if not genres:
                 return []
             await self._put_objects_to_cache(genres, f'all_genres_page_{page}_size_{page_size}')
@@ -57,6 +57,6 @@ def get_genres_service(
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> GenreService:
     
-    elastic_main: ElasticMain = ElasticMain(elastic)
+    db: ElasticMain = ElasticMain(elastic)
 
-    return GenreService(redis, elastic, elastic_main)
+    return GenreService(redis, elastic, db)
