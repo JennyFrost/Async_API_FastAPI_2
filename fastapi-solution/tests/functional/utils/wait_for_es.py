@@ -8,7 +8,7 @@ load_dotenv()
 
 host=os.getenv('ELASTIC_HOST')
 port=os.getenv('ELASTIC_PORT')
-wait_time=os.getenv("WAIT_TIME", 20)
+wait_time=int(os.getenv("WAIT_TIME", 20))
 
 counter = 1
 while counter < wait_time:

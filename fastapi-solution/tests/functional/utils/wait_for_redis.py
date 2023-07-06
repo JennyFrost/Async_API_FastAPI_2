@@ -7,7 +7,7 @@ load_dotenv()
 
 host=os.getenv('REDIS_HOST')
 port=os.getenv('REDIS_PORT')
-wait_time=os.getenv("WAIT_TIME", 20)
+wait_time=int(os.getenv("WAIT_TIME", 20))
 
 counter = 1
 while counter < wait_time:
