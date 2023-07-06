@@ -15,7 +15,7 @@ class MainServiceMixin:
 
 class CacheMixin(MainServiceMixin):
 
-    async def _object_from_cache(self, some_id: str) -> bytes:
+    async def _object_from_cache(self, some_id: str) -> bytes | None:
         data = await self.redis.get(some_id)
         if not data:
             return None

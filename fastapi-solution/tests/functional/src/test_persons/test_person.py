@@ -1,3 +1,4 @@
+from http import HTTPStatus
 import pytest
 import asyncio
 from .models import ResponsePerson, ResponsePersonFilm
@@ -10,22 +11,22 @@ from ...settings import test_settings_movies, test_settings_person
         (
                 {"names": ["Tom", "Jhon", "Sara", "Clark"], "movies": ["Titanic", "Gladiator", "Star Wars"]},
                 {'query': 'Tom', 'page_number': 1, 'page_size': 20},
-                {"status": 200, "person": "Tom"},
+                {"status": HTTPStatus.OK, "person": "Tom"},
         ),
         (
                 {"names": ["Tom", "Jhon", "Sara", "Clark"], "movies": ["Titanic", "Gladiator", "Star Wars"]},
                 {"query": "Sara"},
-                {"status": 200, "person": "Sara"},
+                {"status": HTTPStatus.OK, "person": "Sara"},
         ),
         (
                 {"names": ["Tom", "Jhon", "Sara", "Clark"], "movies": ["Titanic", "Gladiator", "Star Wars"]},
                 {'query': 'slArk', 'page_number': 1, 'page_size': 20},
-                {"status": 200, "person": "Clark"},
+                {"status": HTTPStatus.OK, "person": "Clark"},
         ),
         (
                 {"names": ["Tom", "Jhon", "Sara", "Clark"], "movies": ["Titanic", "Gladiator", "Star Wars"]},
                 {'query': 'Jhon', 'page_number': 1, 'page_size': 20},
-                {"status": 200, "person": "Jhon"},
+                {"status": HTTPStatus.OK, "person": "Jhon"},
         ),
     ]
 )
@@ -120,17 +121,17 @@ async def test_validation_person_film(data_for_write, query_data, es_write_data,
         (
                 {"names": ["Tom", "Jhon", "Sara", "Clark"], "movies": ["Titanic", "Gladiator", "Star Wars"]},
                 {'query': 'Tom'},
-                {"status": 200, "person": "Tom"},
+                {"status": HTTPStatus.OK, "person": "Tom"},
         ),
         (
                 {"names": ["Robert", "Jhon", "Petro", "Genri"], "movies": ["Iron man", "Tor", "Star Wars"]},
                 {'query': 'Genri'},
-                {"status": 200, "person": "Genri"},
+                {"status": HTTPStatus.OK, "person": "Genri"},
         ),
         (
                 {"names": ["Tom", "Jhon", "Sara", "Clark"], "movies": ["Titanic", "Gladiator", "Star Wars"]},
                 {'query': 'Clark'},
-                {"status": 200, "person": "Clark"},
+                {"status": HTTPStatus.OK, "person": "Clark"},
         ),
     ]
 )
@@ -163,17 +164,17 @@ async def test_person_id(data_for_write, query_data, expected_answer, es_write_d
         (
                 {"names": ["Tom", "Jhon", "Sara", "Clark"], "movies": ["Titanic", "Gladiator", "Star Wars"]},
                 {'query': 'Tom'},
-                {"status": 200, "person": "Tom"},
+                {"status": HTTPStatus.OK, "person": "Tom"},
         ),
         (
                 {"names": ["Robert", "Jhon", "Petro", "Genri"], "movies": ["Iron man", "Tor", "Star Wars"]},
                 {'query': 'Genri'},
-                {"status": 200, "person": "Genri"},
+                {"status": HTTPStatus.OK, "person": "Genri"},
         ),
         (
                 {"names": ["Tom", "Jhon", "Sara", "Jeni"], "movies": ["Tank", "Zima", "Star Wars"]},
                 {'query': 'Jeni'},
-                {"status": 200, "person": "Jeni"},
+                {"status": HTTPStatus.OK, "person": "Jeni"},
         ),
     ]
 )
@@ -196,4 +197,4 @@ async def test_person_films(data_for_write, query_data, expected_answer, es_writ
     assert response['status'] == expected_answer['status']
     assert sorted([film['title'] for film in response['body']]) == sorted(data_for_write['movies'])
 
-    await reset_redis() 
+    await reset_redis()

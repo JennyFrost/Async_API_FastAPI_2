@@ -3,6 +3,7 @@ import asyncio
 from ...testdata.film import BaseFilmRequest, FilmRequest
 import pydantic
 from ...settings import test_settings_movies
+from http import HTTPStatus
 
 
 @pytest.mark.parametrize(
@@ -10,15 +11,15 @@ from ...settings import test_settings_movies
     [
         (
                 {'query': 'The star', 'page_size': 50},
-                {'status': 200, 'length': 50},
+                {'status': HTTPStatus.OK, 'length': 50},
         ),
         (
                 {'query': 'Mashed'},
-                {'status': 200, 'length': 0},
+                {'status': HTTPStatus.OK, 'length': 0},
         ),
         (
                 {'query': 'Mashed'},
-                {'status': 200, 'length': 2},
+                {'status': HTTPStatus.OK, 'length': 2},
         )
     ]
 )
@@ -55,11 +56,11 @@ async def test_search(
     [
         (
                 {'sort': '-imdb_rating'},
-                {'status': 200}
+                {'status': HTTPStatus.OK}
         ),
         (
                 {'sort': 'imdb_rating'},
-                {'status': 200}
+                {'status': HTTPStatus.OK}
         )
     ]
 )
@@ -101,7 +102,7 @@ async def test_all_films_sort(
     [
         (
                 {'sort': 'im_rating'},
-                {'status': 422}
+                {'status': HTTPStatus.UNPROCESSABLE_ENTITY}
         )
     ]
 )
@@ -131,11 +132,11 @@ async def test_validate_sort_film(
     [
         (
                 {'genre': '123fsgdh', 'page_size': 50},
-                {'status': 200, 'length': 20}
+                {'status': HTTPStatus.OK, 'length': 20}
         ),
         (
                 {'genre': '4588dfdjjh', 'page_size': 50},
-                {'status': 200, 'length': 20}
+                {'status': HTTPStatus.OK, 'length': 20}
         )
     ]
 )
@@ -172,7 +173,7 @@ async def test_validate_data(es_write_data, generate_films, http_request):
                         index_mapping=test_settings_movies.es_index_mapping)
     await asyncio.sleep(1)
     response = await http_request({}, '/api/v1/films')
-    assert response['status'] == 200
+    assert response['status'] == HTTPStatus.OK
     film = response['body']['result'][0]
     try:
         BaseFilmRequest(**film)
@@ -187,11 +188,11 @@ async def test_validate_data(es_write_data, generate_films, http_request):
     [
         (
             {'film_id': 'e4e97d90-ac31-46bd-bed3-43bc58b75961'},
-            {'find_id': 'e4e97d90-ac31-46bd-bed3-43bc58b75961', 'status': 200}
+            {'find_id': 'e4e97d90-ac31-46bd-bed3-43bc58b75961', 'status': HTTPStatus.OK}
         ),
         (
             {'film_id': 'e4e97d90-ac31-46bd-bed3-43bc58b75961'},
-            {'find_id': 'e7e97d90-ac31-46bd-bed3-43bc58b76745', 'status': 404}
+            {'find_id': 'e7e97d90-ac31-46bd-bed3-43bc58b76745', 'status': HTTPStatus.OK}
         )
     ]
 )
