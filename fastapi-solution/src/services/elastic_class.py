@@ -65,7 +65,7 @@ class ElasticMain:
         try:
             objects = await self.elastic.search(index=index, body=self.search_body)
         except exceptions.NotFoundError:
-            objects = {'hits': {'hits': {'_source': []}}}
+            objects = {'hits': {'hits': []}}
         if some_class is None:
             return objects
         return [some_class(**obj['_source']) for obj in objects['hits']['hits']]
