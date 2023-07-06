@@ -1,7 +1,7 @@
 import re
 from abc import ABC, abstractmethod
 
-from elasticsearch import AsyncElasticsearch, NotFoundError
+from elasticsearch import AsyncElasticsearch, NotFoundError, exceptions
 from pydantic import BaseModel
 
 class AsyncDBEngine(ABC):
@@ -62,7 +62,10 @@ class ElasticMain:
     async def get_queryset(self, index, some_class=None):
         if some_class:
             self.search_body.update({"_source": list(some_class.__fields__.keys())})
-        objects = await self.elastic.search(index=index, body=self.search_body)
+        try:
+            objects = await self.elastic.search(index=index, body=self.search_body)
+        except exceptions.NotFoundError:
+            objects = {'hits': {'hits': {'_source': []}}}
         if some_class is None:
             return objects
         return [some_class(**obj['_source']) for obj in objects['hits']['hits']]
