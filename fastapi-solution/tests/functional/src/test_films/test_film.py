@@ -60,10 +60,6 @@ async def test_search(
         (
                 {'sort': 'imdb_rating'},
                 {'status': 200}
-        ),
-        (
-                {'sort': 'im_rating'},
-                {'status': 422}
         )
     ]
 )
@@ -79,25 +75,53 @@ async def test_all_films_sort(
     await asyncio.sleep(1)
     response = await http_request(query_data, '/api/v1/films')
     assert response['status'] == expected_answer['status']
-    if response['status'] == 200:
-        first_rating = response['body']['result'][0]['imdb_rating']
-        last_rating = response['body']['result'][-1]['imdb_rating']
-        if query_data['sort'].startswith('-'):
-            assert first_rating > last_rating
-        else:
-            assert first_rating < last_rating
+    first_rating = response['body']['result'][0]['imdb_rating']
+    last_rating = response['body']['result'][-1]['imdb_rating']
+    if query_data['sort'].startswith('-'):
+        assert first_rating > last_rating
+    else:
+        assert first_rating < last_rating
 
     await es_delete_index_film(test_settings_movies.es_index)
 
     response = await http_request(query_data, '/api/v1/films')
     assert response['status'] == expected_answer['status']
-    if response['status'] == 200:
-        first_rating = response['body']['result'][0]['imdb_rating']
-        last_rating = response['body']['result'][-1]['imdb_rating']
-        if query_data['sort'].startswith('-'):
-            assert first_rating > last_rating
-        else:
-            assert first_rating < last_rating
+    first_rating = response['body']['result'][0]['imdb_rating']
+    last_rating = response['body']['result'][-1]['imdb_rating']
+    if query_data['sort'].startswith('-'):
+        assert first_rating > last_rating
+    else:
+        assert first_rating < last_rating
+
+    await reset_redis()
+
+
+@pytest.mark.parametrize(
+    'query_data, expected_answer',
+    [
+        (
+                {'sort': 'im_rating'},
+                {'status': 422}
+        )
+    ]
+)
+@pytest.mark.anyio
+async def test_validate_sort_film(
+        query_data, expected_answer,
+        es_write_data, generate_films, http_request, es_delete_index_film, reset_redis
+):
+    '''тест проверка валидации параметров сортировки фильмов по рейтингу'''
+    es_data = await generate_films(num_documents=60)
+    await es_write_data(data=es_data, index_name=test_settings_movies.es_index,
+                        index_mapping=test_settings_movies.es_index_mapping)
+    await asyncio.sleep(1)
+    response = await http_request(query_data, '/api/v1/films')
+    assert response['status'] == expected_answer['status']
+
+    await es_delete_index_film(test_settings_movies.es_index)
+
+    response = await http_request(query_data, '/api/v1/films')
+    assert response['status'] == expected_answer['status']
 
     await reset_redis()
 
