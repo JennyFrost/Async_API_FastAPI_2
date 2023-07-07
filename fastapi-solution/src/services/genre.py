@@ -9,12 +9,13 @@ from db.redis import get_redis
 from models.genre import Genre
 from services.elastic_class import ElasticMain, RedisMain
 
-from services.redis_mixins import CacheMixin
-
 GENRES_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 
 
-class GenreService(CacheMixin):
+class GenreService:
+    def __init__(self, db, redis_conn):
+        self.db = db
+        self.redis_conn = redis_conn
 
     async def get_by_id(self, genre_id: str) -> Genre | None:
         genre = await self.redis_conn.get_by_id(obj_id=genre_id, some_class=Genre)
@@ -38,17 +39,6 @@ class GenreService(CacheMixin):
                 return []
             await self.redis_conn.create(obj=genres, some_id=f'all_genres_page_{page}_size_{page_size}', many=True)
         return genres
-    
-    async def _objects_from_cache(self, some_id: str) -> list[Genre]:
-        objects = await super()._objects_from_cache(some_id)
-        genres = [Genre.parse_raw(obj) for obj in objects]
-        return genres
-    
-    async def _object_from_cache(self, some_id: str) -> Genre | None:
-        obj = await super()._object_from_cache(some_id)
-        if obj:
-            genre = Genre.parse_raw(obj)
-            return genre
 
 
 @lru_cache()
@@ -59,4 +49,4 @@ def get_genres_service(
     
     db: ElasticMain = ElasticMain(elastic)
     redis_conn: Redis = RedisMain(redis)
-    return GenreService(redis, elastic, db, redis_conn)
+    return GenreService(db, redis_conn)

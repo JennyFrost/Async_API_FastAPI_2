@@ -8,13 +8,15 @@ from db.elastic import get_elastic
 from db.redis import get_redis
 
 from models.film import Film, FilmBase
-from services.redis_mixins import CacheMixin
 from services.elastic_class import ElasticMain, RedisMain
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 
 
-class FilmService(CacheMixin):
+class FilmService:
+    def __init__(self, db, redis_conn):
+        self.db = db
+        self.redis_conn = redis_conn
 
     async def get_by_id(self, film_id: str) -> Film | None:
         film = await self.redis_conn.get_by_id(obj_id=film_id, some_class=FilmBase)
@@ -77,4 +79,4 @@ def get_film_service(
     
     db: ElasticMain = ElasticMain(elastic)
     redis_conn: Redis = RedisMain(redis)
-    return FilmService(redis, elastic, db, redis_conn)
+    return FilmService(db, redis_conn)

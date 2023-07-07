@@ -7,13 +7,16 @@ from redis.asyncio import Redis
 from db.elastic import get_elastic
 from db.redis import get_redis
 from models.person import Role, Person, PersonFilm
-from services.redis_mixins import CacheMixin
 from services.elastic_class import ElasticMain, RedisMain
 
 PERSON_CACHE_EXPIRE_IN_SECONDS = 60 * 2
 
 
-class PersonService(CacheMixin):
+class PersonService:
+    def __init__(self, db, redis_conn):
+        self.db = db
+        self.redis_conn = redis_conn
+
 
     async def search_person(
             self, search_text: str,
@@ -65,17 +68,6 @@ class PersonService(CacheMixin):
             person.films.append(person_film)
         return person
 
-    async def _object_from_cache(self, some_id: str) -> Person | None:
-        obj = await super()._object_from_cache(some_id)
-        if obj:
-            person = Person.parse_raw(obj)
-            return person
-
-    async def _objects_from_cache(self, some_id: str) -> list[Person]:
-        objects = await super()._objects_from_cache(some_id)
-        persons = [Person.parse_raw(obj) for obj in objects]
-        return persons
-
 
 @lru_cache()
 def get_person_service(
@@ -85,4 +77,4 @@ def get_person_service(
     
     db: ElasticMain = ElasticMain(elastic)
     redis_conn: Redis = RedisMain(redis)
-    return PersonService(redis, elastic, db, redis_conn)
+    return PersonService(db, redis_conn)
