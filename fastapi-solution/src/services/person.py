@@ -7,27 +7,23 @@ from redis.asyncio import Redis
 from db.elastic import get_elastic
 from db.redis import get_redis
 from models.person import Role, Person, PersonFilm
-from services.elastic_class import ElasticMain, RedisMain
+from services.connector_db import ElasticMain, RedisMain
 
 PERSON_CACHE_EXPIRE_IN_SECONDS = 60 * 2
 
 
 class PersonService:
-    def __init__(self, db, redis_conn):
-        self.db = db
+    def __init__(self, elastic_conn, redis_conn):
+        self.elastic_conn = elastic_conn
         self.redis_conn = redis_conn
-
 
     async def search_person(
             self, search_text: str,
             page: int, page_size: int) -> list[Person]:
         persons = await self.redis_conn.get_by_id(obj_id='search_person_' + search_text, some_class=Person, many=True)
         if not persons:
-            # persons = await self.db.get_objects_query_from_elastic(
-            #     query=search_text, query_field='full_name', page=page, page_size=page_size, some_class=Person, index='persons'
-            # )
-            self.db.search(query=search_text, query_field='full_name').paginate(page=page, page_size=page_size)
-            persons = await self.db.get_queryset(index='persons', some_class=Person)
+            self.elastic_conn.search(query=search_text, query_field='full_name').paginate(page=page, page_size=page_size)
+            persons = await self.elastic_conn.get_queryset(index='persons', some_class=Person)
             result = []
             for person in persons:
                 person = await self._get_person_roles_from_elastic(person)
@@ -41,7 +37,7 @@ class PersonService:
     async def get_by_id(self, person_id: str) -> Person | None:
         person = await self.redis_conn.get_by_id(obj_id=person_id, some_class=Person)
         if not person:
-            person = await self.db.get_by_id(person_id, "persons", Person)
+            person = await self.elastic_conn.get_by_id(person_id, "persons", Person)
             if not person:
                 return None
             person = await self._get_person_roles_from_elastic(person)
@@ -49,12 +45,9 @@ class PersonService:
         return person
 
     async def _get_person_roles_from_elastic(self, person: Person) -> Person | None:
-        # films = await self.db.inner_objects_elastic(
-        #     source_field='id',
-        #     dict_filter={"actors": person.uuid, "director": person.uuid, "writers": person.uuid},
-        #     index='movies')
-        self.db.filter({"actors": person.uuid, "director": person.uuid, "writers": person.uuid}).inner_objects(source_field='id')
-        films = await self.db.get_queryset(index='movies')
+        self.elastic_conn.filter(
+            {"actors": person.uuid, "director": person.uuid, "writers": person.uuid}).inner_objects(source_field='id')
+        films = await self.elastic_conn.get_queryset(index='movies')
 
         for film in films['hits']['hits']:
             film_id = film['_source']['id']
@@ -75,6 +68,6 @@ def get_person_service(
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> PersonService:
     
-    db: ElasticMain = ElasticMain(elastic)
+    elastic_conn: ElasticMain = ElasticMain(elastic)
     redis_conn: Redis = RedisMain(redis)
-    return PersonService(db, redis_conn)
+    return PersonService(elastic_conn, redis_conn)
