@@ -22,7 +22,7 @@ class GenreService(CacheMixin):
             genre = await self.db.get_by_id(obj_id=genre_id, index="genres", some_class=Genre)
             if not genre:
                 return None
-            await self._put_object_to_cache(genre, genre_id)
+            await self.redis_conn.create(obj=genre, some_id=genre_id)
 
         return genre
 
@@ -36,7 +36,7 @@ class GenreService(CacheMixin):
             genres = await self.db.get_queryset(index='genres', some_class=Genre)
             if not genres:
                 return []
-            await self._put_objects_to_cache(genres, f'all_genres_page_{page}_size_{page_size}')
+            await self.redis_conn.create(obj=genres, some_id=f'all_genres_page_{page}_size_{page_size}', many=True)
         return genres
     
     async def _objects_from_cache(self, some_id: str) -> list[Genre]:

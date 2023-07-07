@@ -32,7 +32,7 @@ class PersonService(CacheMixin):
             persons = result
             if not persons:
                 return []
-            await self._put_objects_to_cache(persons, 'search_person_' + search_text)
+            await self.redis_conn.create(obj=persons, some_id='search_person_' + search_text, many=True)
         return persons
 
     async def get_by_id(self, person_id: str) -> Person | None:
@@ -42,7 +42,7 @@ class PersonService(CacheMixin):
             if not person:
                 return None
             person = await self._get_person_roles_from_elastic(person)
-            await self._put_object_to_cache(person, person_id)
+            await self.redis_conn.create(obj=person, some_id=person_id)
         return person
 
     async def _get_person_roles_from_elastic(self, person: Person) -> Person | None:
